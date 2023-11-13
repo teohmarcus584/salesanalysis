@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Data Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      display: none;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .progress-container {
+      margin-top: 15px;
+    }
+
+    .progress-bar {
+      height: 20px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      background-color: #4caf50;
+    }
+
+    .progress-label {
+      margin-top: 5px;
+    }
+
+    .tier-1 .progress-bar-inner {
+      background-color: #4caf50;
+    }
+
+    .tier-2 .progress-bar-inner {
+      background-color: #2196f3;
+    }
+
+    .copy-button,
+    .password-input,
+    #newAdminPassword {
+      margin-top: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .copy-button {
+      background-color: #2196f3;
+      color: #fff;
+    }
+
+    .password-input,
+    #newAdminPassword {
+      border: 1px solid #ccc;
+    }
+
+    .password-input,
+    #newAdminPassword {
+      width: 200px;
+    }
+
+    .password-input::placeholder,
+    #newAdminPassword::placeholder {
+      color: #aaa;
+    }
+
+    .password-input:focus,
+    #newAdminPassword:focus {
+      outline: none;
+      border-color: #2196f3;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: #fff;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #adminButton,
+    #amyReportButton,
+    #ritaReportButton,
+    #sylviaReportButton,
+    #zickyReportButton {
+      display: inline-block;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      background-color: #4caf50;
+      color: #fff;
+    }
+
+    #adminButton:hover,
+    #amyReportButton:hover,
+    #ritaReportButton:hover,
+    #sylviaReportButton:hover,
+    #zickyReportButton:hover {
+      background-color: #45a049;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+  <button id="adminButton" onclick="showAdminPanel()">Admin Panel</button>
+<button id="adminButton" onclick="showAdminPanel()">Admin Panel</button>
+<button id="amyReportButton" onclick="showIndividualReport('Amy')">Amy Sales Report</button>
+<button id="ritaReportButton" onclick="showIndividualReport('Rita')">Rita Sales Report</button>
+<button id="sylviaReportButton" onclick="showIndividualReport('Sylvia')">Sylvia Sales Report</button>
+<button id="zickyReportButton" onclick="showIndividualReport('ZIQKEY')">ZIQKEY Sales Report</button>
+
+<div class="container" id="adminPanel">
+  <h1>Sales Analysis</h1>
+  Report &gt; Receipt &gt; Export Receipts.<br>
+  <input type="file" id="csvFile" accept=".csv">
+  <div id="resultContainer"></div>
+  <div id="progressBars" class="progress-container"></div>
+
+  <!-- New input and button for changing admin password -->
+  <div id="adminPasswordChange" style="display: none;">
+    <input type="password" id="newAdminPassword" class="password-input" placeholder="New Admin Password">
+    <button onclick="changeAdminPassword()">Change Admin Password</button>
+  </div>
+</div>
+<script>
+  var userPasswords = {}; // Store user passwords in memory
+
+    userPasswords = {}; // Store user passwords in memory
+
+  function showAdminPanel() {
+    var enteredPassword = prompt('Enter the admin password:');
+    var storedPassword = localStorage.getItem('admin_password');
+
+    if (enteredPassword === storedPassword) {
+      document.getElementById('adminPanel').style.display = 'block';
+      document.getElementById('adminButton').style.display = 'none';
+      document.getElementById('adminPasswordChange').style.display = 'block';
+      loadResultsFromLocalStorage();
+    } else {
+      alert('Incorrect admin password. Please try again.');
+    }
+  }
+ function changeAdminPassword() {
+    var currentPassword = prompt('Enter the current admin password:');
+    var storedPassword = localStorage.getItem('admin_password');
+
+    if (currentPassword === storedPassword) {
+      var newPassword = document.getElementById('newAdminPassword').value;
+      if (newPassword !== '') {
+        localStorage.setItem('admin_password', newPassword);
+        alert('Admin password changed successfully.');
+      } else {
+        alert('Please enter a valid password.');
+      }
+    } else {
+      alert('Incorrect current admin password.');
+    }
+  }
+
+
+  function showIndividualReport(diningOption) {
+    var storedPassword = localStorage.getItem(diningOption + '_password');
+    var userPassword = prompt('Enter your password:');
+
+    if ((storedPassword && userPassword === storedPassword) || (!storedPassword && userPassword !== null)) {
+      document.getElementById('adminPanel').style.display = 'block'; // Show the admin panel
+      document.getElementById('adminButton').style.display = 'none'; // Hide the admin button
+document.getElementById('adminPasswordChange').style.display = 'none';
+      document.getElementById('csvFile').style.display = 'none';
+       
+      var resultHtml = '';
+      var progressBarsHtml = '';
+      var targetTier1 = 12000;
+      var targetTier2 = 17000;
+
+      if (userPassword !== null) {
+        // Save the password to localStorage
+        localStorage.setItem(diningOption + '_password', userPassword);
+      }
+
+      var storedResults = localStorage.getItem('salesAnalysisResults');
+      if (storedResults) {
+        var parsedResults = JSON.parse(storedResults);
+
+        if (parsedResults[diningOption]) {
+          resultHtml += '<p><strong>' + diningOption + '</strong></p>';
+          resultHtml += '<p>Total occurrences: ' + parsedResults[diningOption].count + '</p>';
+          resultHtml += '<p>Total Net Sales: RM' + parsedResults[diningOption].netSalesTotal.toFixed(2) + '</p>';
+
+          // Calculate progress percentage
+          var progressPercentage = (parsedResults[diningOption].netSalesTotal / targetTier2) * 100;
+
+          // Determine tier based on the progress
+          var tierClass = progressPercentage <= 100 ? 'tier-1' : 'tier-2';
+
+          // Add progress bar HTML with tier-specific styling
+          progressBarsHtml += '<div>';
+          progressBarsHtml += '<div class="progress-label">' + diningOption + ' Progress</div>';
+          progressBarsHtml += '<div class="progress-bar ' + tierClass + '" style="width: ' + progressPercentage + '%;">';
+          progressBarsHtml += '<div class="progress-bar-inner"></div>';
+          progressBarsHtml += '</div>';
+          progressBarsHtml += '</div>';
+
+          // Add copy button
+          progressBarsHtml += '<button class="copy-button" onclick="copyToClipboard(' + parsedResults[diningOption].netSalesTotal.toFixed(2) + ')">Copy Net Sales</button>';
+        } else {
+          resultHtml += '<p>No data available for ' + diningOption + '</p>';
+        }
+
+        document.getElementById('resultContainer').innerHTML = resultHtml;
+        document.getElementById('progressBars').innerHTML = progressBarsHtml;
+
+        // Add password change input for the user
+        var passwordChangeHtml = '<input type="password" class="password-input" placeholder="New Password" id="' + diningOption + '_passwordInput">';
+        passwordChangeHtml += '<button onclick="changeUserPassword(\'' + diningOption + '\')">Change Password</button>';
+        document.getElementById('resultContainer').innerHTML += passwordChangeHtml;
+      }
+    } else {
+      alert('Incorrect password or operation canceled.');
+    }
+  }
+
+  function setUserPassword(diningOption) {
+    var storedPassword = localStorage.getItem(diningOption + '_password');
+    if (!storedPassword) {
+      var newPassword = prompt('Set a password for ' + diningOption + ':');
+      if (newPassword !== null) {
+        localStorage.setItem(diningOption + '_password', newPassword);
+        alert('Password set successfully for ' + diningOption);
+      }
+    }
+  }
+
+  function changeUserPassword(diningOption) {
+    var newPassword = document.getElementById(diningOption + '_passwordInput').value;
+    if (newPassword !== '') {
+      localStorage.setItem(diningOption + '_password', newPassword);
+      alert('Password changed successfully for ' + diningOption);
+    } else {
+      alert('Please enter a valid password.');
+    }
+  }
+
+  document.getElementById('csvFile').addEventListener('change', handleFileSelect);
+
+  function handleFileSelect(event) {
+    var file = event.target.files[0];
+
+    Papa.parse(file, {
+      complete: function (results) {
+        var totals = {};
+        var targetTier1 = 12000;
+        var targetTier2 = 17000;
+
+        for (var i = 0; i < results.data.length; i++) {
+          var diningOption = results.data[i][12]; // Assuming Column M is at index 12 (0-based)
+          var netSales = parseFloat(results.data[i][5]); // Assuming Column F is at index 5 (0-based)
+
+          // Add "ZIQKEY" as a new dining option
+          if (diningOption === 'Rita' || diningOption === 'Amy' || diningOption === 'Sylvia' || diningOption === 'ZIQKEY') {
+            if (!isNaN(netSales)) {
+              if (!totals[diningOption]) {
+                totals[diningOption] = {
+                  count: 0,
+                  netSalesTotal: 0,
+                };
+              }
+              totals[diningOption].count++;
+              totals[diningOption].netSalesTotal += netSales;
+            }
+          }
+        }
+
+        var resultHtml = '';
+        var progressBarsHtml = '';
+
+        for (var option in totals) {
+          resultHtml += '<p><strong>' + option + '</strong></p>';
+          resultHtml += '<p>Total occurrences: ' + totals[option].count + '</p>';
+          resultHtml += '<p>Total Net Sales: RM' + totals[option].netSalesTotal.toFixed(2) + '</p>';
+
+          // Calculate progress percentage
+          var progressPercentage = (totals[option].netSalesTotal / targetTier2) * 100;
+
+          // Determine tier based on the progress
+          var tierClass = progressPercentage <= 100 ? 'tier-1' : 'tier-2';
+
+          // Add progress bar HTML with tier-specific styling
+          progressBarsHtml += '<div>';
+          progressBarsHtml += '<div class="progress-label">' + option + ' Progress</div>';
+          progressBarsHtml += '<div class="progress-bar ' + tierClass + '" style="width: ' + progressPercentage + '%;">';
+          progressBarsHtml += '<div class="progress-bar-inner"></div>';
+          progressBarsHtml += '</div>';
+          progressBarsHtml += '</div>';
+
+          // Add copy button
+          progressBarsHtml += '<button class="copy-button" onclick="copyToClipboard(' + totals[option].netSalesTotal.toFixed(2) + ')">Copy Net Sales</button>';
+        }
+
+        document.getElementById('resultContainer').innerHTML = resultHtml;
+        document.getElementById('progressBars').innerHTML = progressBarsHtml;
+
+        // Save the results to local storage
+        localStorage.setItem('salesAnalysisResults', JSON.stringify(totals));
+      },
+    });
+  }
+
+  function loadResultsFromLocalStorage() {
+    var storedResults = localStorage.getItem('salesAnalysisResults');
+    if (storedResults) {
+      var parsedResults = JSON.parse(storedResults);
+      var resultHtml = '';
+      var progressBarsHtml = '';
+      var targetTier1 = 12000;
+      var targetTier2 = 17000;
+
+      for (var option in parsedResults) {
+        resultHtml += '<p><strong>' + option + '</strong></p>';
+        resultHtml += '<p>Total occurrences: ' + parsedResults[option].count + '</p>';
+        resultHtml += '<p>Total Net Sales: RM' + parsedResults[option].netSalesTotal.toFixed(2) + '</p>';
+
+        // Calculate progress percentage
+        var progressPercentage = (parsedResults[option].netSalesTotal / targetTier2) * 100;
+
+        // Determine tier based on the progress
+        var tierClass = progressPercentage <= 100 ? 'tier-1' : 'tier-2';
+
+        // Add progress bar HTML with tier-specific styling
+        progressBarsHtml += '<div>';
+        progressBarsHtml += '<div class="progress-label">' + option + ' Progress</div>';
+        progressBarsHtml += '<div class="progress-bar ' + tierClass + '" style="width: ' + progressPercentage + '%;">';
+        progressBarsHtml += '<div class="progress-bar-inner"></div>';
+        progressBarsHtml += '</div>';
+        progressBarsHtml += '</div>';
+
+        // Add copy button
+        progressBarsHtml += '<button class="copy-button" onclick="copyToClipboard(' + parsedResults[option].netSalesTotal.toFixed(2) + ')">Copy Net Sales</button>';
+      }
+
+      document.getElementById('resultContainer').innerHTML = resultHtml;
+      document.getElementById('progressBars').innerHTML = progressBarsHtml;
+    }
+  }
+
+  // Load results from local storage when the page loads
+  window.addEventListener('load', function () {
+    var isAdmin = localStorage.getItem('isAdmin');
+    if (isAdmin && isAdmin === 'true') {
+      showAdminPanel();
+    } else {
+      // For non-admin users, set or edit their personalized password
+      setUserPassword('Amy');
+      setUserPassword('Rita');
+      setUserPassword('Sylvia');
+      setUserPassword('ZIQKEY');
+    }
+  });
+
+  // Function to copy text to clipboard
+  function copyToClipboard(value) {
+    var tempInput = document.createElement('input');
+    tempInput.value = value;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    alert('Net Sales copied to clipboard: ' + value);
+  }
+    var originalTitle = document.title; // Store the initial title
+  // Example: Update title with sales data
+    function updateTitleWithSalesData(salesData) {
+      // Modify the title element with sales data
+      document.title = 'Sales Data - ' + salesData;
+    }
+
+    // Example: Save current state as HTML
+    function saveAsHTML() {
+      var htmlContent = document.documentElement.outerHTML; // Get the entire HTML content
+      var blob = new Blob([htmlContent], { type: 'text/html' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sales_data_page.html';
+      a.click();
+    }
+</script>
+
+
+</body></html>
