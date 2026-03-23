@@ -1,175 +1,1360 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lucky Draw</title>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <style>
+    /* ---------- Base Styles ---------- */
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #fafafa;
+      color: #222;
+      line-height: 1.5;
+      padding: 16px;
       min-height: 100vh;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      padding: 20px;
-    }
-    .container {
-      max-width: 600px;
-      width: 100%;
-      background: white;
-      border-radius: 28px;
-      padding: 30px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-      text-align: center;
     }
     h1 {
-      font-size: 2.5rem;
-      color: #f59e0b;
-      margin-bottom: 20px;
+      font-size: 1.8rem;
+      font-weight: 400;
+      margin: 0 0 8px 0;
+      color: #111;
+      text-align: center;
     }
-    .receipt-id {
-      background: #f1f5f9;
-      padding: 12px 20px;
-      border-radius: 60px;
-      font-family: monospace;
-      font-size: 1.2rem;
-      margin: 20px 0;
-      word-break: break-all;
+    .wheel-wrapper {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      margin: 10px 0 20px 0;
+      width: 100%;
     }
-    button {
-      background: #f59e0b;
-      border: none;
-      padding: 14px 40px;
-      border-radius: 60px;
+    canvas {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      aspect-ratio: 1/1;
+      display: block;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid #eee;
+    }
+    #spinButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #0a7b3c;
       color: white;
-      font-size: 1.2rem;
-      font-weight: 600;
+      border: none;
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
+      transition: all 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
     }
-    button:hover {
-      background: #d97706;
-      transform: scale(1.02);
+    #spinButton:hover {
+      background: #0c8f47;
+      transform: translate(-50%, -50%) scale(1.05);
     }
-    button:active {
+    #spinButton:active {
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    #spinButton:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      background: #ccc;
+    }
+    @keyframes pulse-glow {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.9), 0 4px 15px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%) scale(1.05);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+    #spinButton.pulse-glow {
+      animation: pulse-glow 1.5s infinite;
+    }
+    .coin-token {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      background: gold;
+      border-radius: 50%;
+      border: 2px solid #b8860b;
+      box-shadow: 0 0 10px gold;
+      z-index: 1000;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #b8860b;
+      transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+      will-change: transform;
+    }
+    .coin-token::after {
+      content: "$";
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0 8px 0;
+      width: 100%;
+    }
+    #connectPrinterButton {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 40px;
+      padding: 14px 24px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #222;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      min-width: 140px;
+    }
+    #connectPrinterButton:hover {
+      background: #f2f2f2;
+    }
+    #connectPrinterButton:active {
+      background: #e8e8e8;
       transform: scale(0.98);
     }
-    .prize {
-      margin-top: 30px;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #2c7a4b;
-      min-height: 80px;
-      padding: 20px;
-      background: #f0fdf4;
-      border-radius: 20px;
-      display: none;
-    }
-    .prize.show {
-      display: block;
-    }
-    .error {
-      color: #dc2626;
-      margin-top: 10px;
+    #printerStatus {
+      text-align: center;
       font-size: 0.9rem;
+      color: #666;
+      margin: 4px 0 10px 0;
+      min-height: 3rem;
+      white-space: pre-wrap;
+      background: #f0f0f0;
+      padding: 8px;
+      border-radius: 8px;
     }
-    .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
+    #result {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 400;
+      margin: 10px 0 25px 0;
+      min-height: 3rem;
+      color: #0a7b3c;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .action-buttons button {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 40px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #222;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      min-width: 140px;
+    }
+    .action-buttons button:hover {
+      background: #f2f2f2;
+    }
+    #checkButton {
+      background: #ff9800;
+      color: white;
+      border: none;
+    }
+    #checkButton:hover {
+      background: #f57c00;
+    }
+    #claimButton {
+      background: #2196F3;
+      color: white;
+      border: none;
+    }
+    #claimButton:hover {
+      background: #1976D2;
+    }
+    #reprintButton {
+      background: #9c27b0;
+      color: white;
+      border: none;
+    }
+    #reprintButton:hover {
+      background: #7b1fa2;
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 1.5rem; }
+      #spinButton {
+        width: 80px;
+        height: 80px;
+        font-size: 1.1rem;
+      }
+      .coin-token {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+      }
+    }
+
+    /* ---------- Custom Modal Styles ---------- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-container {
+      background: white;
+      max-width: 400px;
+      width: 90%;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: modalFadeIn 0.2s;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #222;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 30px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+    .modal-input:focus {
+      border-color: #0a7b3c;
+    }
+    .modal-select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 30px;
+      margin-bottom: 20px;
+      outline: none;
+      background: white;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .modal-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 40px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .modal-btn-primary {
+      background: #0a7b3c;
+      color: white;
+    }
+    .modal-btn-primary:hover {
+      background: #0c8f47;
+    }
+    .modal-btn-secondary {
+      background: #f0f0f0;
+      color: #222;
+    }
+    .modal-btn-secondary:hover {
+      background: #ddd;
+    }
+    .modal-message {
+      font-size: 1rem;
+      margin: 16px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ---------- Loading Spinner Modal ---------- */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      flex-direction: column;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #0a7b3c;
       border-radius: 50%;
-      border-top-color: white;
-      animation: spin 0.8s linear infinite;
-      margin-left: 10px;
-      vertical-align: middle;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
     }
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 500;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎉 Lucky Draw 🎉</h1>
-    <p>Your receipt number:</p>
-    <div class="receipt-id" id="receiptId">—</div>
-    <button id="spinBtn">🎁 Spin the Wheel</button>
-    <div id="result" class="prize"></div>
+  <h1>UL LUCKY SPIN</h1>
+
+  <div class="wheel-wrapper">
+    <canvas id="wheelCanvas" width="700" height="700"></canvas>
+    <button id="spinButton" style="display:none;">SPIN</button>
+  </div>
+
+  <!-- Coin token element (initially hidden) -->
+  <div id="coinToken" class="coin-token" style="display: none;"></div>
+
+  <div class="controls">
+    <button id="connectPrinterButton">🖨️ connect printer</button>
+    <div class="action-buttons">
+      <button id="checkButton">🔍 Check Lucky Draw</button>
+      <button id="claimButton">💰 Claim Receipt</button>
+      <button id="reprintButton">🖨️ Reprint Ticket</button>
+    </div>
+  </div>
+  <div id="printerStatus"></div>
+  <div id="result"></div>
+
+  <!-- ---------- Custom Modals ---------- -->
+  <div id="inputModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-title" id="inputModalTitle">Enter receipt number</div>
+      <input type="text" id="inputModalField" class="modal-input" placeholder="Receipt number">
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="selectModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-title" id="selectModalTitle">Select prize</div>
+      <select id="selectModalField" class="modal-select"></select>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button>
+        <button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="alertModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-title" id="alertModalTitle">Message</div>
+      <div class="modal-message" id="alertModalMessage"></div>
+      <div class="modal-buttons" style="justify-content: center;">
+        <button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- Loading Spinner Modal ---------- -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingMessage">Loading...</div>
   </div>
 
   <script>
-    // Function to get URL parameters
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
+    // ---------- CONFIGURATION ----------
+    // 🔁 REPLACE WITH YOUR ACTUAL APPS SCRIPT WEB APP URL (for lucky draw records)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxAMSm7-4SLGhHVlsBPws1AqLrcZ1wqfs74qItyUOZ_ilDzCZ5DS2GS29m-l0vkgSLuIA/exec";
 
-    // Get the receipt number from the URL
-    const receipt = getQueryParam('receipt');
-    const receiptElement = document.getElementById('receiptId');
-    const spinBtn = document.getElementById('spinBtn');
-    const resultDiv = document.getElementById('result');
-
-    // Display receipt number
-    if (receipt) {
-      receiptElement.textContent = receipt;
-      console.log('Receipt number received:', receipt);
-      // You can store it for later use if needed
-      localStorage.setItem('lastReceipt', receipt);
-    } else {
-      receiptElement.textContent = 'No receipt number found';
-      receiptElement.style.background = '#fee2e2';
-    }
-
-    // Prizes list (you can customize)
-    const prizes = [
-      { name: 'RM 10 Voucher', chance: 15 },
-      { name: 'RM 50 Voucher', chance: 5 },
-      { name: 'Free Coffee', chance: 20 },
-      { name: '5% Off Next Purchase', chance: 25 },
-      { name: 'Try Again', chance: 35 }
+    // ---------- DATA (fixed prizes) ----------
+    let prizes = [
+      { label: "CAR AROMATIC RM 38", weight: 5 },
+      { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
+      { label: "CAR AROMATIC RM 38", weight: 5 },
+      { label: "LA PREVE 100ML RM 280", weight: 0 },
+      { label: "CAR AROMATIC RM 38", weight: 5 },
+      { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
+      { label: "CAR AROMATIC RM 38", weight: 5 },
+      { label: "200ML REED DIFFUSER RM 89", weight: 0 },
+      { label: "CAR AROMATIC RM 38", weight: 1 },
+      { label: "500ML BODY WASH RM 67", weight: 0 },
+      { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
+      { label: "300ML LOTION RM 109", weight: 1 },
+      { label: "15ML TRAVEL PERFUME RM 75", weight: 3 },
+      { label: "100ML ROOM SPRAY RM 89", weight: 0 },
+      { label: "NO WIN", weight: 0 },
+      { label: "100ML PILLOW MIST RM 75", weight: 1 },
+      { label: "NO WIN", weight: 0 },
+      { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
     ];
 
-    // Weighted random selection
-    function getRandomPrize() {
-      const totalWeight = prizes.reduce((sum, p) => sum + p.chance, 0);
-      let random = Math.random() * totalWeight;
-      for (let prize of prizes) {
-        if (random < prize.chance) return prize.name;
-        random -= prize.chance;
+    // Extract unique prize labels for dropdown
+    const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
+
+    const colorPalette = [
+      "#FF6F61", "#6B5B95", "#88B04B", "#FFA07A", "#92A8D1",
+      "#F7CAC9", "#955251", "#B565A7", "#009B77", "#DD4124"
+    ];
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinButton');
+    const resultDiv = document.getElementById('result');
+
+    let spinning = false;
+    let currentRotation = 0;
+    let animationFrame = null;
+    let spinStartTime = null;
+    const spinDuration = 12000;
+    let spinStartRotation = 0;
+    let spinTargetRotation = 0;
+
+    // Store receipt number for two‑click behavior
+    let storedReceiptNumber = null;
+
+    const TWO_PI = 2 * Math.PI;
+
+    function normalizeAngle(angle) {
+      return ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+    }
+
+    // ---------- Improved Wheel Drawing (larger text) ----------
+    function drawWheel() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) - 15;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (prizes.length === 0) {
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#999';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Add prizes', centerX, centerY);
+        return;
       }
-      return 'Try Again';
+
+      const segmentAngle = TWO_PI / prizes.length;
+      let startAngle = currentRotation;
+
+      for (let i = 0; i < prizes.length; i++) {
+        const prize = prizes[i];
+        const endAngle = startAngle + segmentAngle;
+
+        // Draw segment
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colorPalette[i % colorPalette.length];
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Prepare to draw text
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + segmentAngle / 2);
+
+        // --- Larger text settings ---
+        const textRadius = radius * 0.55;
+        const chordLength = 2 * textRadius * Math.sin(segmentAngle / 2) * 0.95;
+
+        let fontSize = 26;
+        const minFontSize = 18;
+        const text = prize.label;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+
+        while (fontSize > minFontSize && ctx.measureText(text).width > chordLength) {
+          fontSize -= 1;
+          ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        }
+
+        ctx.fillStyle = '#000';
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.shadowBlur = 5;
+        ctx.fillText(text, textRadius, 0);
+
+        ctx.restore();
+
+        startAngle = endAngle;
+      }
+
+      // Draw center circle and pointer
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 30, 0, TWO_PI);
+      ctx.fillStyle = '#333';
+      ctx.shadowBlur = 0;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(centerX - 20, 15);
+      ctx.lineTo(centerX, 45);
+      ctx.lineTo(centerX + 20, 15);
+      ctx.fillStyle = '#f00';
+      ctx.fill();
     }
 
-    // Spin animation
-    async function spin() {
+    // ---------- Custom Modal Helpers ----------
+    function showInputModal(title, placeholder = '') {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById('inputModal');
+        const titleEl = document.getElementById('inputModalTitle');
+        const field = document.getElementById('inputModalField');
+        const okBtn = document.getElementById('inputModalOk');
+        const cancelBtn = document.getElementById('inputModalCancel');
+
+        titleEl.textContent = title;
+        field.placeholder = placeholder;
+        field.value = '';
+        overlay.style.display = 'flex';
+        field.focus();
+
+        const onOk = () => {
+          cleanup();
+          resolve(field.value.trim());
+        };
+        const onCancel = () => {
+          cleanup();
+          resolve(null);
+        };
+        const onKeyDown = (e) => {
+          if (e.key === 'Enter') onOk();
+          if (e.key === 'Escape') onCancel();
+        };
+
+        const cleanup = () => {
+          overlay.style.display = 'none';
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          field.removeEventListener('keydown', onKeyDown);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        field.addEventListener('keydown', onKeyDown);
+      });
+    }
+
+    function showSelectModal(title, options) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById('selectModal');
+        const titleEl = document.getElementById('selectModalTitle');
+        const select = document.getElementById('selectModalField');
+        const okBtn = document.getElementById('selectModalOk');
+        const cancelBtn = document.getElementById('selectModalCancel');
+
+        titleEl.textContent = title;
+        select.innerHTML = '';
+
+        options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          if (opt === "CAR AROMATIC RM 38") {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        });
+
+        overlay.style.display = 'flex';
+
+        const onOk = () => {
+          cleanup();
+          resolve(select.value);
+        };
+        const onCancel = () => {
+          cleanup();
+          resolve(null);
+        };
+        const onKeyDown = (e) => {
+          if (e.key === 'Enter') onOk();
+          if (e.key === 'Escape') onCancel();
+        };
+
+        const cleanup = () => {
+          overlay.style.display = 'none';
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          select.removeEventListener('keydown', onKeyDown);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        select.addEventListener('keydown', onKeyDown);
+      });
+    }
+
+    function showAlertModal(title, message) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById('alertModal');
+        const titleEl = document.getElementById('alertModalTitle');
+        const msgEl = document.getElementById('alertModalMessage');
+        const okBtn = document.getElementById('alertModalOk');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        overlay.style.display = 'flex';
+
+        const onOk = () => {
+          overlay.style.display = 'none';
+          okBtn.removeEventListener('click', onOk);
+          resolve();
+        };
+        okBtn.addEventListener('click', onOk);
+      });
+    }
+
+    // ---------- Loading Overlay Helpers ----------
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+
+    function showLoading(message = 'Loading...') {
+      loadingMessage.textContent = message;
+      loadingOverlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+      loadingOverlay.style.display = 'none';
+    }
+
+    // ---------- GOOGLE SHEETS API FUNCTIONS (with loading) ----------
+    async function fetchReceiptData(receiptNumber) {
+      showLoading('Checking receipt...');
+      try {
+        const url = `${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        if (result.success) {
+          return result.data; // { receipt, prize, claimed, value, timestamp }
+        } else {
+          return null;
+        }
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function saveSpinResult(receiptNumber, prize) {
+      showLoading('Saving record...');
+      try {
+        const url = APPS_SCRIPT_URL;
+        const formData = new URLSearchParams();
+        formData.append("action", "save");
+        formData.append("receipt", receiptNumber);
+        formData.append("prize", prize);
+
+        const response = await fetch(url, {
+          method: "POST",
+          body: formData
+        });
+        const result = await response.json();
+        return result.success;
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function claimReceipt(receiptNumber, value) {
+      showLoading('Processing claim...');
+      try {
+        const url = APPS_SCRIPT_URL;
+        const formData = new URLSearchParams();
+        formData.append("action", "claim");
+        formData.append("receipt", receiptNumber);
+        formData.append("value", value);
+
+        const response = await fetch(url, {
+          method: "POST",
+          body: formData
+        });
+        const result = await response.json();
+        return result.success;
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Helper: parse timestamp from sheet into a Date object (midnight local)
+    function parseSpinDate(timestamp) {
+      if (!timestamp) return null;
+      let spinDate = new Date(timestamp);
+      if (isNaN(spinDate.getTime())) {
+        const parts = timestamp.split(/[-/]/);
+        if (parts.length === 3) {
+          let year, month, day;
+          if (parts[0].length === 4) {
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]) - 1;
+            day = parseInt(parts[2]);
+          } else {
+            day = parseInt(parts[0]);
+            month = parseInt(parts[1]) - 1;
+            year = parseInt(parts[2]);
+          }
+          spinDate = new Date(year, month, day);
+        } else {
+          return null;
+        }
+      }
+      if (isNaN(spinDate.getTime())) return null;
+      return new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
+    }
+
+    // Helper: get expiry info (kept for compatibility, but we now use parseSpinDate)
+    function getExpiryInfo(timestamp) {
+      const spinDate = parseSpinDate(timestamp);
+      if (!spinDate) return { valid: false, message: 'Invalid date format' };
+      const today = new Date();
+      const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const diffDays = Math.floor((currentDay - spinDate) / (1000 * 60 * 60 * 24));
+      const expiryDate = new Date(spinDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+      return {
+        valid: true,
+        spinDate: spinDate,
+        diffDays,
+        expired: diffDays > 30,
+        expiryDate
+      };
+    }
+
+    // ---------- AUDIO & ANIMATION ----------
+    let audioContext = null;
+
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playCoinSound() {
+      try {
+        initAudio();
+        const now = audioContext.currentTime;
+        
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.value = 1200;
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc1.connect(gain1);
+        gain1.connect(audioContext.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+        
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.value = 1800;
+        gain2.gain.setValueAtTime(0.15, now);
+        gain2.gain.exponentialRampToValueAtTime(0.005, now + 0.1);
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        osc2.start(now);
+        osc2.stop(now + 0.1);
+        
+        const bufferSize = 4096;
+        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const noise = audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const noiseGain = audioContext.createGain();
+        noiseGain.gain.setValueAtTime(0.1, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        noise.connect(noiseGain);
+        noiseGain.connect(audioContext.destination);
+        noise.start(now);
+        noise.stop(now + 0.05);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    function playSpinSound() {
+      try {
+        initAudio();
+        const now = audioContext.currentTime;
+        
+        const bufferSize = 4096;
+        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const noise = audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+        filter.Q.value = 5;
+        
+        const gain = audioContext.createGain();
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        noise.start(now);
+        noise.stop(now + 0.5);
+        
+        const osc = audioContext.createOscillator();
+        const oscGain = audioContext.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
+        oscGain.gain.setValueAtTime(0.1, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(oscGain);
+        oscGain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    function animateCoinToButton() {
+      return new Promise((resolve) => {
+        const coin = document.getElementById('coinToken');
+        const spinBtnRect = spinBtn.getBoundingClientRect();
+        const targetX = spinBtnRect.left + spinBtnRect.width / 2;
+        const targetY = spinBtnRect.top + spinBtnRect.height / 2;
+
+        const wheelRect = canvas.getBoundingClientRect();
+        const startX = wheelRect.right - 30;
+        const startY = wheelRect.bottom - 30;
+
+        coin.style.display = 'flex';
+        coin.style.left = startX + 'px';
+        coin.style.top = startY + 'px';
+        coin.style.transform = 'translate(0, 0) scale(1.5)';
+
+        coin.offsetHeight;
+
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+        coin.style.transform = `translate(${dx}px, ${dy}px) scale(1)`;
+
+        const onTransitionEnd = () => {
+          coin.style.display = 'none';
+          coin.removeEventListener('transitionend', onTransitionEnd);
+          playCoinSound();
+          resolve();
+        };
+        coin.addEventListener('transitionend', onTransitionEnd, { once: true });
+      });
+    }
+
+    // ---------- SPIN FUNCTION (using custom modal) ----------
+    async function spinWheel() {
+      if (spinning) return;
+
+      if (storedReceiptNumber === null) {
+        const receiptNumber = await showInputModal('Enter receipt number', 'Receipt number');
+        if (receiptNumber === null || receiptNumber === '') {
+          if (receiptNumber !== null) {
+            await showAlertModal('Error', 'Receipt number cannot be empty.');
+          }
+          return;
+        }
+
+        try {
+          const existing = await fetchReceiptData(receiptNumber);
+          if (existing !== null) {
+            await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize}${existing.claimed ? ' (claimed)' : ' (not claimed)'}. Cannot use again.`);
+            return;
+          }
+        } catch (error) {
+          await showAlertModal('Error', 'Error checking receipt. Please try again.');
+          console.error(error);
+          return;
+        }
+
+        storedReceiptNumber = receiptNumber;
+        resultDiv.innerText = `Valid! Token added -- Spin the wheel, Good luck...`;
+
+        await animateCoinToButton();
+        spinBtn.classList.add('pulse-glow');
+        return;
+      }
+
+      const receiptNumber = storedReceiptNumber;
+      storedReceiptNumber = null;
+      spinBtn.classList.remove('pulse-glow');
+
+      playSpinSound();
+
+      if (prizes.length === 0) {
+        resultDiv.innerText = 'Add some prizes first!';
+        return;
+      }
+
+      const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
+      if (totalWeight === 0) {
+        resultDiv.innerText = 'All weights are zero – nothing to win!';
+        return;
+      }
+
+      const rand = Math.random() * totalWeight;
+      let cumulative = 0;
+      let selectedIndex = 0;
+      for (let i = 0; i < prizes.length; i++) {
+        cumulative += prizes[i].weight;
+        if (rand < cumulative) {
+          selectedIndex = i;
+          break;
+        }
+      }
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const pointerTip = { x: centerX, y: 45 };
+      const pointerAngle = Math.atan2(pointerTip.y - centerY, pointerTip.x - centerX);
+      const normalizedPointerAngle = normalizeAngle(pointerAngle);
+
+      const segmentAngle = TWO_PI / prizes.length;
+      const randomOffset = Math.random() * segmentAngle;
+      const targetAngleInWheel = selectedIndex * segmentAngle + randomOffset;
+      let targetBaseRotation = normalizeAngle(normalizedPointerAngle - targetAngleInWheel);
+
+      const extraFullTurns = 12 + Math.floor(Math.random() * 9);
+      const extraAngle = extraFullTurns * TWO_PI;
+      spinTargetRotation = targetBaseRotation + extraAngle;
+
+      spinStartRotation = currentRotation;
+      spinStartTime = performance.now();
+      spinning = true;
       spinBtn.disabled = true;
-      spinBtn.innerHTML = 'Spinning <span class="spinner"></span>';
-      resultDiv.classList.remove('show');
-      resultDiv.innerHTML = '';
 
-      // Simulate a spinning effect (optional)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (animationFrame) cancelAnimationFrame(animationFrame);
 
-      const prize = getRandomPrize();
-      resultDiv.innerHTML = `🎉 You won: ${prize} 🎉`;
-      resultDiv.classList.add('show');
+      function animateSpin(now) {
+        const elapsed = now - spinStartTime;
+        let progress = Math.min(elapsed / spinDuration, 1);
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
 
-      spinBtn.disabled = false;
-      spinBtn.innerHTML = '🎁 Spin the Wheel';
+        const rawRotation = spinStartRotation + (spinTargetRotation - spinStartRotation) * easeOutQuart;
+        currentRotation = normalizeAngle(rawRotation);
+        drawWheel();
 
-      // Optional: Send winning result to a server or log it
-      console.log(`Receipt ${receipt} won: ${prize}`);
+        if (progress < 1) {
+          animationFrame = requestAnimationFrame(animateSpin);
+        } else {
+          const wheelAngleAtPointer = normalizeAngle(normalizedPointerAngle - currentRotation);
+          const segmentIndex = Math.floor(wheelAngleAtPointer / segmentAngle);
+          const actualIndex = Math.min(segmentIndex, prizes.length - 1);
+          const wonPrize = prizes[actualIndex];
+
+          spinning = false;
+          spinBtn.disabled = false;
+          resultDiv.innerText = `🎉 you won: ${wonPrize.label}`;
+
+          saveSpinResult(receiptNumber, wonPrize.label)
+            .then(success => {
+              if (!success) console.warn("Failed to save spin result.");
+            })
+            .catch(err => console.error("Error saving spin result:", err));
+
+          // Print with original spin date (today)
+          if (window.printerAPI && window.printerAPI.isConnected && window.printerAPI.printWinningPrize) {
+            window.printerAPI.printWinningPrize(wonPrize.label, receiptNumber, new Date());
+          }
+
+          animationFrame = null;
+        }
+      }
+
+      animationFrame = requestAnimationFrame(animateSpin);
     }
 
-    spinBtn.addEventListener('click', spin);
+    spinBtn.addEventListener('click', spinWheel);
+    drawWheel();
+
+    // ---------- CHECK BUTTON ----------
+    document.getElementById('checkButton').addEventListener('click', async function() {
+      const receiptNumber = await showInputModal('Check Lucky Draw', 'Receipt number');
+      if (receiptNumber === null || receiptNumber === '') {
+        if (receiptNumber !== null) await showAlertModal('Error', 'Receipt number cannot be empty.');
+        return;
+      }
+
+      try {
+        const data = await fetchReceiptData(receiptNumber);
+        if (!data) {
+          await showAlertModal('Not Found', `Receipt ${receiptNumber} not found in records.`);
+          return;
+        }
+
+        let statusLine = '';
+        if (data.claimed) {
+          statusLine = `Claimed (value: RM ${data.value || 'N/A'})`;
+        } else {
+          const expiry = getExpiryInfo(data.timestamp);
+          if (!expiry.valid) {
+            statusLine = `Not claimed – ${expiry.message}`;
+          } else if (expiry.expired) {
+            statusLine = `Expired on ${expiry.expiryDate.toLocaleDateString()}`;
+          } else {
+            statusLine = `Valid (expires on ${expiry.expiryDate.toLocaleDateString()})`;
+          }
+        }
+
+        await showAlertModal('Receipt Info', 
+          `Receipt: ${receiptNumber}\nPrize: ${data.prize}\nStatus: ${statusLine}`
+        );
+      } catch (error) {
+        await showAlertModal('Error', 'Error checking receipt. Please try again.');
+        console.error(error);
+      }
+    });
+
+    // ---------- CLAIM BUTTON (unchanged logic but includes timestamp) ----------
+    document.getElementById('claimButton').addEventListener('click', async function() {
+      const receiptNumber = await showInputModal('Claim Receipt', 'Receipt number');
+      if (receiptNumber === null || receiptNumber === '') {
+        if (receiptNumber !== null) await showAlertModal('Error', 'Receipt number cannot be empty.');
+        return;
+      }
+
+      try {
+        const data = await fetchReceiptData(receiptNumber);
+        if (!data) {
+          const prize = await showSelectModal('Select prize won', uniquePrizes);
+          if (prize === null) return;
+          const value = await showInputModal('Enter NEW receipt value (RM)', 'RM amount');
+          if (value === null || value === '') {
+            if (value !== null) await showAlertModal('Error', 'Value cannot be empty.');
+            return;
+          }
+          const saved = await saveSpinResult(receiptNumber, prize);
+          if (!saved) {
+            await showAlertModal('Error', 'Failed to save record. Please try again.');
+            return;
+          }
+          const claimed = await claimReceipt(receiptNumber, value);
+          if (claimed) {
+            await showAlertModal('Success', `Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
+          } else {
+            await showAlertModal('Error', 'Claim failed after saving record.');
+          }
+          return;
+        }
+
+        if (data.claimed) {
+          await showAlertModal('Already Claimed', `Receipt ${receiptNumber} already claimed with prize: ${data.prize} (value: RM ${data.value || 'N/A'}).`);
+          return;
+        }
+
+        const expiry = getExpiryInfo(data.timestamp);
+        if (!expiry.valid || expiry.expired) {
+          await showAlertModal('Expired', `This prize expired on ${expiry.expiryDate?.toLocaleDateString() || 'unknown date'}. Cannot claim.`);
+          return;
+        }
+
+        const value = await showInputModal(`Enter NEW receipt value (RM) for prize ${data.prize}`, 'RM amount');
+        if (value === null || value === '') {
+          if (value !== null) await showAlertModal('Error', 'Value cannot be empty.');
+          return;
+        }
+        const success = await claimReceipt(receiptNumber, value);
+        if (success) {
+          await showAlertModal('Success', `Receipt ${receiptNumber} claimed successfully for prize ${data.prize} with value RM ${value}.`);
+        } else {
+          await showAlertModal('Error', 'Claim failed. Please try again.');
+        }
+      } catch (error) {
+        await showAlertModal('Error', 'Error claiming receipt. Please try again.');
+        console.error(error);
+      }
+    });
+
+    // ---------- REPRINT FUNCTION ----------
+    document.getElementById('reprintButton').addEventListener('click', async function() {
+      if (!window.printerAPI || !window.printerAPI.isConnected) {
+        await showAlertModal('Printer Error', 'Printer not connected. Please connect first.');
+        return;
+      }
+
+      const receiptNumber = await showInputModal('Reprint Ticket', 'Enter receipt number');
+      if (receiptNumber === null || receiptNumber === '') {
+        if (receiptNumber !== null) await showAlertModal('Error', 'Receipt number cannot be empty.');
+        return;
+      }
+
+      try {
+        const data = await fetchReceiptData(receiptNumber);
+        if (!data) {
+          await showAlertModal('Not Found', `Receipt ${receiptNumber} not found. Cannot reprint.`);
+          return;
+        }
+
+        const spinDate = parseSpinDate(data.timestamp);
+        if (!spinDate) {
+          await showAlertModal('Warning', 'Original spin date not valid, using today for receipt validity.');
+        }
+
+        await window.printerAPI.printWinningPrize(data.prize, receiptNumber, spinDate || new Date());
+        await showAlertModal('Reprint', `Ticket for receipt ${receiptNumber} (${data.prize}) sent to printer.`);
+        resultDiv.innerText = `🖨️ Reprint requested for ${receiptNumber}`;
+      } catch (err) {
+        console.error(err);
+        await showAlertModal('Error', 'Could not reprint ticket. Check console for details.');
+      }
+    });
+
+    // ---------- PRINTER INTEGRATION (enhanced with reprint & date handling) ----------
+    (function() {
+      const connectBtn = document.getElementById('connectPrinterButton');
+      const printerStatus = document.getElementById('printerStatus');
+
+      let gattServer = null;
+      let printerCharacteristic = null;
+      let isConnected = false;
+
+      function formatDate(date) {
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+      }
+
+      // Generate ESC/POS receipt bytes with optional spinDate (defaults to current date)
+      function generateReceiptData(prizeLabel, receiptNumber, spinDate = new Date()) {
+        const encoder = new TextEncoder();
+        const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
+        const validTill = new Date(validFrom);
+        validTill.setDate(validTill.getDate() + 30);
+
+        const lines = [
+          '',
+          'LUCKY DRAW',
+          'CONGRATULATIONS',
+          'YOU ARE ENTITLED',
+          '',
+          `FREE ${prizeLabel}`,
+          'WITH ANY PURCHASE',
+          '(EXCEPT OPENING PROMOTION)',
+          '',
+          `VALID FROM ${formatDate(validFrom)}`,
+          `TILL ${formatDate(validTill)}`,
+          `Receipt No: ${receiptNumber}`,
+          '',
+          ''
+        ];
+        const text = lines.join('\n');
+
+        const commands = [
+          0x1B, 0x40,
+          0x1B, 0x52, 0x00,
+          0x1B, 0x21, 0x00,
+          0x1B, 0x61, 0x01,
+          ...encoder.encode(text),
+          0x1B, 0x64, 0x03,
+          0x1D, 0x56, 0x41, 0x00
+        ];
+        return new Uint8Array(commands);
+      }
+
+      async function printWinningPrize(prizeLabel, receiptNumber, spinDate) {
+        if (!isConnected || !printerCharacteristic) {
+          printerStatus.innerText = '❌ Printer not connected';
+          return false;
+        }
+        try {
+          const receipt = generateReceiptData(prizeLabel, receiptNumber, spinDate);
+          await printerCharacteristic.writeValue(receipt);
+          printerStatus.innerText = '✅ Receipt printed';
+          return true;
+        } catch (error) {
+          console.error('Print error:', error);
+          printerStatus.innerText = `❌ Print failed: ${error.message}`;
+          return false;
+        }
+      }
+
+      async function connectPrinter() {
+        try {
+          setStatus('🔍 Requesting Bluetooth device...');
+          connectBtn.disabled = true;
+
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+          });
+
+          setStatus(`✅ Device selected: ${device.name || 'Unnamed'}\nConnecting to GATT...`);
+
+          gattServer = await device.gatt.connect();
+          setStatus(`✅ GATT connected. Discovering services...`);
+
+          const services = await gattServer.getPrimaryServices();
+          let foundChar = null;
+
+          for (const service of services) {
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+              if (char.properties.write || char.properties.writeWithoutResponse) {
+                foundChar = char;
+                break;
+              }
+            }
+            if (foundChar) break;
+          }
+
+          if (!foundChar) throw new Error('No writable characteristic found');
+
+          printerCharacteristic = foundChar;
+          isConnected = true;
+          window.printerAPI.isConnected = true;
+
+          setStatus('✅ Printer ready!');
+          connectBtn.innerText = '🖨️ disconnect';
+          spinBtn.style.display = 'flex';
+        } catch (error) {
+          console.error('Connection error:', error);
+          setStatus(`❌ Failed: ${error.message}`, true);
+          gattServer = null;
+          printerCharacteristic = null;
+        } finally {
+          connectBtn.disabled = false;
+        }
+      }
+
+      async function disconnectPrinter() {
+        try {
+          if (gattServer) {
+            gattServer.disconnect();
+            gattServer = null;
+            printerCharacteristic = null;
+          }
+          isConnected = false;
+          window.printerAPI.isConnected = false;
+          setStatus('');
+          connectBtn.innerText = '🖨️ connect printer';
+          spinBtn.style.display = 'none';
+          spinBtn.classList.remove('pulse-glow');
+        } catch (error) {
+          console.error('Disconnect error:', error);
+          setStatus('❌ Disconnect failed', true);
+        }
+      }
+
+      function setStatus(msg, isError = false) {
+        printerStatus.innerText = msg;
+        printerStatus.style.background = isError ? '#ffeeee' : '#f0f0f0';
+      }
+
+      connectBtn.addEventListener('click', () => {
+        if (!isConnected) {
+          connectPrinter();
+        } else {
+          disconnectPrinter();
+        }
+      });
+
+      window.printerAPI = {
+        isConnected: false,
+        printWinningPrize: printWinningPrize
+      };
+    })();
+
+    // ---------- AUTOMATIC RECEIPT DETECTION FROM URL ----------
+    (async function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const receiptFromUrl = urlParams.get('receipt');
+      if (receiptFromUrl) {
+        // Automatically use this receipt number
+        storedReceiptNumber = receiptFromUrl;
+        // Pre‑check if it's already used
+        try {
+          const existing = await fetchReceiptData(receiptFromUrl);
+          if (existing !== null) {
+            await showAlertModal('Already Used', `Receipt ${receiptFromUrl} already won: ${existing.prize}${existing.claimed ? ' (claimed)' : ' (not claimed)'}. Cannot use again.`);
+            storedReceiptNumber = null; // prevent spinning
+            resultDiv.innerText = 'This receipt has already been used.';
+          } else {
+            resultDiv.innerText = `Receipt ${receiptFromUrl} loaded. Click SPIN to try your luck!`;
+            // Optional: show coin animation and pulsating button
+            await animateCoinToButton();
+            spinBtn.classList.add('pulse-glow');
+          }
+        } catch (error) {
+          console.error('Error checking receipt from URL:', error);
+          resultDiv.innerText = 'Error validating receipt. Please try manually.';
+          storedReceiptNumber = null;
+        }
+      }
+    })();
   </script>
 </body>
 </html>
