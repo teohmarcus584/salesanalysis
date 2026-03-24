@@ -309,7 +309,7 @@
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // ---------- PRINTER INTEGRATION with Auto-Connect (improved) ----------
+    // ---------- PRINTER INTEGRATION with "Simulated Pair Button" ----------
     (function(){
       const connectBtn = document.getElementById('connectPrinterButton');
       const printerStatus = document.getElementById('printerStatus');
@@ -401,7 +401,7 @@
 
       async function manualConnect() {
         try{
-          setStatus('🔍 Requesting Bluetooth device...');
+          setStatus('🔍 Select your mini-printer from the list...');
           connectBtn.disabled = true;
           const device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
@@ -409,26 +409,30 @@
           });
           await connectToDevice(device);
         }catch(error){
-          console.error('Manual connection error:', error);
-          setStatus(`❌ Failed: ${error.message}`, true);
+          if(error.message !== 'User cancelled') {
+            console.error('Manual connection error:', error);
+            setStatus(`❌ Failed: ${error.message}`, true);
+          } else {
+            setStatus('Connection cancelled.', true);
+          }
         }finally{
           connectBtn.disabled = false;
         }
       }
 
       async function autoConnect() {
-        // If browser doesn't support getDevices, silently fall back to manual
+        // If browser doesn't support getDevices, show a prominent button
         if (!navigator.bluetooth.getDevices) {
-          setStatus('');  // no message, just show manual button
-          connectBtn.innerText = '🖨️ connect printer';
+          setStatus('📱 Tap the button below to pair your mini-printer', false);
+          connectBtn.innerText = '🖨️ tap to pair';
           spinBtn.style.display = 'none';
           return;
         }
 
         const savedId = localStorage.getItem(SAVED_DEVICE_ID_KEY);
         if(!savedId) {
-          setStatus('');
-          connectBtn.innerText = '🖨️ connect printer';
+          setStatus('📱 Tap the button below to pair your mini-printer', false);
+          connectBtn.innerText = '🖨️ tap to pair';
           spinBtn.style.display = 'none';
           return;
         }
@@ -441,19 +445,19 @@
             setStatus(`Found saved printer: ${savedDevice.name || 'Unnamed'}. Connecting...`);
             const success = await connectToDevice(savedDevice);
             if(!success) {
-              setStatus(`Saved printer not reachable. Please ensure it's powered on and in range, or connect manually.`, true);
-              connectBtn.innerText = '🖨️ connect printer';
+              setStatus(`Saved printer not reachable. Tap to connect manually.`, true);
+              connectBtn.innerText = '🖨️ tap to pair';
               spinBtn.style.display = 'none';
             }
           } else {
-            setStatus('Saved printer not found. Please connect manually.', true);
-            connectBtn.innerText = '🖨️ connect printer';
+            setStatus('Saved printer not found. Tap to connect manually.', true);
+            connectBtn.innerText = '🖨️ tap to pair';
             spinBtn.style.display = 'none';
           }
         }catch(error){
           console.error('Auto-connect error:', error);
-          setStatus(`Auto‑connect failed: ${error.message}`, true);
-          connectBtn.innerText = '🖨️ connect printer';
+          setStatus(`Auto‑connect failed. Tap to pair manually.`, true);
+          connectBtn.innerText = '🖨️ tap to pair';
           spinBtn.style.display = 'none';
         }
       }
@@ -469,7 +473,7 @@
           currentDevice = null;
           window.printerAPI.isConnected = false;
           setStatus('');
-          connectBtn.innerText = '🖨️ connect printer';
+          connectBtn.innerText = '🖨️ tap to pair';
           spinBtn.style.display = 'none';
           spinBtn.classList.remove('pulse-glow');
         }catch(error){
