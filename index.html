@@ -207,7 +207,7 @@
     function playSpinSound(){ try{ initAudio(); const now=audioContext.currentTime; const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const filter=audioContext.createBiquadFilter(); filter.type='bandpass'; filter.frequency.setValueAtTime(800,now); filter.frequency.exponentialRampToValueAtTime(200,now+0.5); filter.Q.value=5; const gain=audioContext.createGain(); gain.gain.setValueAtTime(0.2,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.5); noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.5); const osc=audioContext.createOscillator(); const oscGain=audioContext.createGain(); osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.4); oscGain.gain.setValueAtTime(0.1,now); oscGain.gain.exponentialRampToValueAtTime(0.001,now+0.4); osc.connect(oscGain); oscGain.connect(audioContext.destination); osc.start(now); osc.stop(now+0.4); }catch(e){console.log('Audio not supported');} }
     function animateCoinToButton(){ return new Promise((resolve)=>{ const coin=document.getElementById('coinToken'); const spinBtnRect=spinBtn.getBoundingClientRect(); const targetX=spinBtnRect.left+spinBtnRect.width/2; const targetY=spinBtnRect.top+spinBtnRect.height/2; const wheelRect=canvas.getBoundingClientRect(); const startX=wheelRect.right-30; const startY=wheelRect.bottom-30; coin.style.display='flex'; coin.style.left=startX+'px'; coin.style.top=startY+'px'; coin.style.transform='translate(0,0) scale(1.5)'; coin.offsetHeight; const dx=targetX-startX; const dy=targetY-startY; coin.style.transform=`translate(${dx}px, ${dy}px) scale(1)`; const onTransitionEnd=()=>{ coin.style.display='none'; coin.removeEventListener('transitionend',onTransitionEnd); playCoinSound(); resolve(); }; coin.addEventListener('transitionend',onTransitionEnd,{once:true}); }); }
 
-    // --- SPIN (unchanged logic) ---
+    // --- SPIN (unchanged) ---
     async function spinWheel(){
       if(spinning)return;
       if(storedReceiptNumber===null){
@@ -260,7 +260,7 @@
     }
     spinBtn.addEventListener('click',spinWheel); drawWheel();
 
-    // --- Check / Claim / Reprint (unchanged, except reprint error handling) ---
+    // --- Check / Claim / Reprint (unchanged) ---
     document.getElementById('checkButton').addEventListener('click',async()=>{
       const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
       if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
@@ -306,12 +306,11 @@
         if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found. Cannot reprint.`); return; }
         const spinDate=parseSpinDate(data.timestamp);
         await window.printerAPI.printWinningPrize(data.prize,receiptNumber,spinDate||new Date());
-        // Success – no alert, just update status (printerStatus will show)
         resultDiv.innerText=`🖨️ Reprint requested for ${receiptNumber}`;
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // ---------- PRINTER INTEGRATION (fixed barcode + error handling) ----------
+    // ---------- PRINTER INTEGRATION (smaller barcode) ----------
     (function(){
       const connectBtn=document.getElementById('connectPrinterButton');
       const printerStatus=document.getElementById('printerStatus');
@@ -335,9 +334,10 @@
         commands.push(0x1B,0x40, 0x1B,0x52,0x00, 0x1B,0x21,0x00, 0x1B,0x61,0x01);
         for(let i=0;i<text.length;i++) commands.push(text.charCodeAt(i));
         commands.push(0x0A); // newline
-        // barcode settings: height 100, width 2
-        commands.push(0x1D,0x68,0x64, 0x1D,0x77,0x02);
-        commands.push(0x1B,0x61,0x01); // center
+
+        // Smaller barcode: height = 50 dots (0x32) , width = 1 (0x01)
+        commands.push(0x1D,0x68,0x32, 0x1D,0x77,0x01);
+        commands.push(0x1B,0x61,0x01); // center barcode
         // Code128 (GS k 73) + length + data
         const barcodeData=encoder.encode(receiptNumber);
         const len=barcodeData.length;
@@ -356,7 +356,7 @@
         try{
           const receipt=generateReceiptData(prizeLabel,receiptNumber,spinDate);
           await printerCharacteristic.writeValue(receipt);
-          printerStatus.innerText='✅ Receipt printed with barcode';
+          printerStatus.innerText='✅ Receipt printed (small barcode)';
           return true;
         }catch(error){
           console.error('Print error:',error);
