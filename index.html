@@ -309,14 +309,12 @@
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // ---------- PRINTER INTEGRATION with Auto-Connect ----------
+    // ---------- PRINTER INTEGRATION with Auto-Connect (improved) ----------
     (function(){
       const connectBtn = document.getElementById('connectPrinterButton');
       const printerStatus = document.getElementById('printerStatus');
       let gattServer = null, printerCharacteristic = null, isConnected = false;
-      let currentDevice = null; // store device object for potential reconnection
-
-      // Key for storing the saved device ID
+      let currentDevice = null;
       const SAVED_DEVICE_ID_KEY = 'saved_printer_device_id';
 
       function formatDate(date){ const d=date.getDate().toString().padStart(2,'0'); const m=(date.getMonth()+1).toString().padStart(2,'0'); const y=date.getFullYear(); return `${d}/${m}/${y}`; }
@@ -363,7 +361,6 @@
         }
       }
 
-      // Main connection function – expects a BluetoothDevice object
       async function connectToDevice(device) {
         try{
           setStatus(`Connecting to ${device.name || 'printer'}...`);
@@ -389,7 +386,6 @@
           setStatus('✅ Printer ready!');
           connectBtn.innerText = '🖨️ disconnect';
           spinBtn.style.display = 'flex';
-          // Save device ID for future auto-connect
           if(device.id) localStorage.setItem(SAVED_DEVICE_ID_KEY, device.id);
           return true;
         }catch(error){
@@ -403,7 +399,6 @@
         }
       }
 
-      // Manual connection (user clicks button)
       async function manualConnect() {
         try{
           setStatus('🔍 Requesting Bluetooth device...');
@@ -421,19 +416,20 @@
         }
       }
 
-      // Auto-connect: try to find saved device among already paired devices
       async function autoConnect() {
-        const savedId = localStorage.getItem(SAVED_DEVICE_ID_KEY);
-        if(!savedId) {
-          // No saved printer, show manual button
-          setStatus('');
+        // If browser doesn't support getDevices, silently fall back to manual
+        if (!navigator.bluetooth.getDevices) {
+          setStatus('');  // no message, just show manual button
           connectBtn.innerText = '🖨️ connect printer';
           spinBtn.style.display = 'none';
           return;
         }
 
-        if (!navigator.bluetooth.getDevices) {
-          setStatus('⚠️ Auto‑connect not supported in this browser. Please connect manually.', true);
+        const savedId = localStorage.getItem(SAVED_DEVICE_ID_KEY);
+        if(!savedId) {
+          setStatus('');
+          connectBtn.innerText = '🖨️ connect printer';
+          spinBtn.style.display = 'none';
           return;
         }
 
@@ -445,7 +441,6 @@
             setStatus(`Found saved printer: ${savedDevice.name || 'Unnamed'}. Connecting...`);
             const success = await connectToDevice(savedDevice);
             if(!success) {
-              // Connection failed, maybe device out of range; keep saved ID but show manual button
               setStatus(`Saved printer not reachable. Please ensure it's powered on and in range, or connect manually.`, true);
               connectBtn.innerText = '🖨️ connect printer';
               spinBtn.style.display = 'none';
@@ -477,7 +472,6 @@
           connectBtn.innerText = '🖨️ connect printer';
           spinBtn.style.display = 'none';
           spinBtn.classList.remove('pulse-glow');
-          // We do NOT clear saved device ID – user may want to reconnect later.
         }catch(error){
           console.error('Disconnect error:', error);
           setStatus('❌ Disconnect failed', true);
