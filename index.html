@@ -1188,59 +1188,55 @@
         return `${d}/${m}/${y}`;
       }
 
-      // Generate ESC/POS receipt bytes with optional spinDate (defaults to current date)
-      function generateReceiptData(prizeLabel, receiptNumber, spinDate = new Date()) {
-        const encoder = new TextEncoder();
-        const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
-        const validTill = new Date(validFrom);
-        validTill.setDate(validTill.getDate() + 30);
+     function generateReceiptData(prizeLabel, receiptNumber, spinDate = new Date()) {
+    const encoder = new TextEncoder();
+    const validFrom = new Date(spinDate.getFullYear(), spinDate.getMonth(), spinDate.getDate());
+    const validTill = new Date(validFrom);
+    validTill.setDate(validTill.getDate() + 30);
 
-        const lines = [
-          '',
-          'LUCKY DRAW',
-          'CONGRATULATIONS',
-          'YOU ARE ENTITLED',
-          '',
-          `FREE ${prizeLabel}`,
-          'WITH ANY PURCHASE',
-          '(EXCEPT OPENING PROMOTION)',
-          '',
-          `VALID FROM ${formatDate(validFrom)}`,
-          `TILL ${formatDate(validTill)}`,
-          `Receipt No: ${receiptNumber}`,
-          '',
-          ''
-        ];
-        const text = lines.join('\n');
+    const lines = [
+        '',
+        'LUCKY DRAW',
+        'CONGRATULATIONS',
+        'YOU ARE ENTITLED',
+        '',
+        `FREE ${prizeLabel}`,
+        'WITH ANY PURCHASE',
+        '(EXCEPT OPENING PROMOTION)',
+        '',
+        `VALID FROM ${formatDate(validFrom)}`,
+        `TILL ${formatDate(validTill)}`,
+        `Receipt No: ${receiptNumber}`,
+        '',
+        ''
+    ];
+    const text = lines.join('\n');
 
-        const commands = [
-          0x1B, 0x40,
-          0x1B, 0x52, 0x00,
-          0x1B, 0x21, 0x00,
-          0x1B, 0x61, 0x01,
-          ...encoder.encode(text),
-          0x1B, 0x64, 0x03,
-          0x1D, 0x56, 0x41, 0x00
-        ];
-        return new Uint8Array(commands);
-      }
+    const commands = [
+        0x1B, 0x40, // init
+        0x1B, 0x52, 0x00, // select intl char set
+        0x1B, 0x21, 0x00, // font normal
+        0x1B, 0x61, 0x01, // center align
+        ...encoder.encode(text),
+        0x0A, // extra line feed before barcode
+        0x1B, 0x61, 0x00, // left align for barcode
+        0x1D, 0x68, 0x64, // barcode height 100
+        0x1D, 0x77, 0x02, // module width 2
+    ];
+    // barcode: GS k m n data NUL (m=8 for CODE128)
+    const barcodeData = encoder.encode(receiptNumber);
+    const barcodeLen = barcodeData.length;
+    commands.push(0x1D, 0x6B, 0x08, barcodeLen);
+    for (let i = 0; i < barcodeLen; i++) {
+        commands.push(barcodeData[i]);
+    }
+    commands.push(0x00); // NUL terminator
+    commands.push(0x0A, 0x0A); // feed lines
+    commands.push(0x1B, 0x64, 0x03); // feed 3 lines
+    commands.push(0x1D, 0x56, 0x41, 0x00); // cut
 
-      async function printWinningPrize(prizeLabel, receiptNumber, spinDate) {
-        if (!isConnected || !printerCharacteristic) {
-          printerStatus.innerText = '❌ Printer not connected';
-          return false;
-        }
-        try {
-          const receipt = generateReceiptData(prizeLabel, receiptNumber, spinDate);
-          await printerCharacteristic.writeValue(receipt);
-          printerStatus.innerText = '✅ Receipt printed';
-          return true;
-        } catch (error) {
-          console.error('Print error:', error);
-          printerStatus.innerText = `❌ Print failed: ${error.message}`;
-          return false;
-        }
-      }
+    return new Uint8Array(commands);
+}
 
       async function connectPrinter() {
         try {
