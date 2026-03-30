@@ -144,6 +144,7 @@
     const spinDuration = 12000;
     let spinStartRotation = 0, spinTargetRotation = 0;
     let storedReceiptNumber = null;
+    let customerId = null;  // <-- NEW: store customer ID from URL
     const TWO_PI = 2 * Math.PI;
     function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
 
@@ -170,7 +171,7 @@
       ctx.beginPath(); ctx.moveTo(centerX-20,15); ctx.lineTo(centerX,45); ctx.lineTo(centerX+20,15); ctx.fillStyle='#f00'; ctx.fill();
     }
 
-    // Modal helpers
+    // Modal helpers (unchanged)
     function showInputModal(title,placeholder='') { return new Promise((resolve)=>{ const overlay=document.getElementById('inputModal'), titleEl=document.getElementById('inputModalTitle'), field=document.getElementById('inputModalField'), okBtn=document.getElementById('inputModalOk'), cancelBtn=document.getElementById('inputModalCancel'); titleEl.textContent=title; field.placeholder=placeholder; field.value=''; overlay.style.display='flex'; field.focus(); const onOk=()=>{cleanup();resolve(field.value.trim());}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); field.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); field.addEventListener('keydown',onKeyDown); }); }
     function showSelectModal(title,options) { return new Promise((resolve)=>{ const overlay=document.getElementById('selectModal'), titleEl=document.getElementById('selectModalTitle'), select=document.getElementById('selectModalField'), okBtn=document.getElementById('selectModalOk'), cancelBtn=document.getElementById('selectModalCancel'); titleEl.textContent=title; select.innerHTML=''; options.forEach(opt=>{const option=document.createElement('option'); option.value=opt; option.textContent=opt; select.appendChild(option);}); overlay.style.display='flex'; const onOk=()=>{cleanup();resolve(select.value);}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); select.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); select.addEventListener('keydown',onKeyDown); }); }
     function showAlertModal(title,message) { return new Promise((resolve)=>{ const overlay=document.getElementById('alertModal'), titleEl=document.getElementById('alertModalTitle'), msgEl=document.getElementById('alertModalMessage'), okBtn=document.getElementById('alertModalOk'); titleEl.textContent=title; msgEl.textContent=message; overlay.style.display='flex'; const onOk=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); resolve();}; okBtn.addEventListener('click',onOk); }); }
@@ -178,9 +179,21 @@
     function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
     function hideLoading(){ loadingOverlay.style.display='none'; }
 
-    // Google Sheets API
+    // Google Sheets API (modified to include customer_id)
     async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
-    async function saveSpinResult(receiptNumber,prize){ showLoading('Saving record...'); try{ const fd=new URLSearchParams(); fd.append('action','save'); fd.append('receipt',receiptNumber); fd.append('prize',prize); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
+    async function saveSpinResult(receiptNumber, prize, customerId = null){ 
+      showLoading('Saving record...'); 
+      try{ 
+        const fd = new URLSearchParams(); 
+        fd.append('action','save'); 
+        fd.append('receipt', receiptNumber); 
+        fd.append('prize', prize);
+        if (customerId) fd.append('customer_id', customerId);
+        const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
+        const res = await resp.json(); 
+        return res.success; 
+      } finally{ hideLoading(); } 
+    }
     async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
     function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
     function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
@@ -194,9 +207,7 @@
 
     // Close page after prize announcement
     function closePage() {
-      // Attempt to close the window (only works if opened by script)
       window.close();
-      // Fallback message in case browser blocks close
       setTimeout(() => {
         showAlertModal('Thank You', 'The page can now be closed.').then(() => {});
       }, 500);
@@ -244,8 +255,8 @@
           const actualIndex=Math.min(segmentIndex,prizes.length-1);
           const wonPrize=prizes[actualIndex];
           spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
-          saveSpinResult(receiptNumber,wonPrize.label).catch(e=>console.error(e));
-          // Announce prize and close page
+          // Save spin result with customer ID (if available)
+          saveSpinResult(receiptNumber, wonPrize.label, customerId).catch(e=>console.error(e));
           showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nThank you for playing!`).then(() => {
             closePage();
           });
@@ -256,7 +267,7 @@
     }
     spinBtn.addEventListener('click',spinWheel); drawWheel();
 
-    // Check / Claim / Reprint (unchanged, but reprint is kept for completeness; it won't affect closing)
+    // Check / Claim / Reprint (unchanged)
     document.getElementById('checkButton').addEventListener('click',async()=>{
       const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
       if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
@@ -277,7 +288,7 @@
         if(!data){
           const prize=await showSelectModal('Select prize won',uniquePrizes); if(prize===null) return;
           const value=await showInputModal('Enter NEW receipt value (RM)','RM amount'); if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
-          const saved=await saveSpinResult(receiptNumber,prize); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
+          const saved=await saveSpinResult(receiptNumber,prize, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
           const claimed=await claimReceipt(receiptNumber,value);
           if(claimed) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
           else await showAlertModal('Error','Claim failed after saving record.');
@@ -299,15 +310,19 @@
       try{
         const data=await fetchReceiptData(receiptNumber);
         if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found. Cannot reprint.`); return; }
-        // This page no longer has printer connection, so just show a message
         await showAlertModal('Reprint not available', 'Printer connection is not enabled in this version.');
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // URL receipt auto-detect
+    // URL receipt auto-detect AND customer_id extraction
     (async function(){
-      const urlParams=new URLSearchParams(window.location.search);
-      const receiptFromUrl=urlParams.get('receipt');
+      const urlParams = new URLSearchParams(window.location.search);
+      const receiptFromUrl = urlParams.get('receipt');
+      const customerIdFromUrl = urlParams.get('customer_id');
+      if (customerIdFromUrl) {
+        customerId = customerIdFromUrl;
+        console.log('Customer ID loaded:', customerId);
+      }
       if(receiptFromUrl){
         storedReceiptNumber=receiptFromUrl;
         try{
