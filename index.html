@@ -4,7 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
   <style>
-    /* ---------- Base Styles (unchanged) ---------- */
+    /* ---------- Base Styles ---------- */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -37,19 +37,6 @@
     }
     .coin-token::after { content: "$"; }
     .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px 0 8px 0; width: 100%; }
-    #connectPrinterButton {
-      background: white; border: 1px solid #ccc; border-radius: 40px; padding: 14px 24px;
-      font-size: 1.1rem; font-weight: 500; color: #222; cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03); -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation; min-width: 140px;
-    }
-    #connectPrinterButton:hover { background: #f2f2f2; }
-    #connectPrinterButton:active { background: #e8e8e8; transform: scale(0.98); }
-    #printerStatus {
-      text-align: center; font-size: 0.9rem; color: #666; margin: 4px 0 10px 0;
-      min-height: 3rem; white-space: pre-wrap; background: #f0f0f0; padding: 8px; border-radius: 8px;
-    }
-    #result { text-align: center; font-size: 1.6rem; font-weight: 400; margin: 10px 0 25px 0; min-height: 3rem; color: #0a7b3c; }
     .action-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
     .action-buttons button {
       background: white; border: 1px solid #ccc; border-radius: 40px; padding: 12px 20px;
@@ -102,18 +89,16 @@
   <h1>UL LUCKY SPIN</h1>
   <div class="wheel-wrapper">
     <canvas id="wheelCanvas" width="700" height="700"></canvas>
-    <button id="spinButton" style="display:none;">SPIN</button>
+    <button id="spinButton">SPIN</button>
   </div>
   <div id="coinToken" class="coin-token" style="display: none;"></div>
   <div class="controls">
-    <button id="connectPrinterButton">🖨️ connect printer</button>
     <div class="action-buttons">
       <button id="checkButton">🔍 Check Lucky Draw</button>
       <button id="claimButton">💰 Claim Receipt</button>
       <button id="reprintButton">🖨️ Reprint Ticket</button>
     </div>
   </div>
-  <div id="printerStatus"></div>
   <div id="result"></div>
 
   <!-- Modals -->
@@ -185,7 +170,7 @@
       ctx.beginPath(); ctx.moveTo(centerX-20,15); ctx.lineTo(centerX,45); ctx.lineTo(centerX+20,15); ctx.fillStyle='#f00'; ctx.fill();
     }
 
-    // --- Modal helpers (unchanged) ---
+    // Modal helpers
     function showInputModal(title,placeholder='') { return new Promise((resolve)=>{ const overlay=document.getElementById('inputModal'), titleEl=document.getElementById('inputModalTitle'), field=document.getElementById('inputModalField'), okBtn=document.getElementById('inputModalOk'), cancelBtn=document.getElementById('inputModalCancel'); titleEl.textContent=title; field.placeholder=placeholder; field.value=''; overlay.style.display='flex'; field.focus(); const onOk=()=>{cleanup();resolve(field.value.trim());}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); field.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); field.addEventListener('keydown',onKeyDown); }); }
     function showSelectModal(title,options) { return new Promise((resolve)=>{ const overlay=document.getElementById('selectModal'), titleEl=document.getElementById('selectModalTitle'), select=document.getElementById('selectModalField'), okBtn=document.getElementById('selectModalOk'), cancelBtn=document.getElementById('selectModalCancel'); titleEl.textContent=title; select.innerHTML=''; options.forEach(opt=>{const option=document.createElement('option'); option.value=opt; option.textContent=opt; select.appendChild(option);}); overlay.style.display='flex'; const onOk=()=>{cleanup();resolve(select.value);}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); select.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); select.addEventListener('keydown',onKeyDown); }); }
     function showAlertModal(title,message) { return new Promise((resolve)=>{ const overlay=document.getElementById('alertModal'), titleEl=document.getElementById('alertModalTitle'), msgEl=document.getElementById('alertModalMessage'), okBtn=document.getElementById('alertModalOk'); titleEl.textContent=title; msgEl.textContent=message; overlay.style.display='flex'; const onOk=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); resolve();}; okBtn.addEventListener('click',onOk); }); }
@@ -193,21 +178,31 @@
     function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
     function hideLoading(){ loadingOverlay.style.display='none'; }
 
-    // --- Google Sheets API (unchanged) ---
+    // Google Sheets API
     async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
     async function saveSpinResult(receiptNumber,prize){ showLoading('Saving record...'); try{ const fd=new URLSearchParams(); fd.append('action','save'); fd.append('receipt',receiptNumber); fd.append('prize',prize); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
     async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
     function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
     function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
 
-    // --- Audio (unchanged) ---
+    // Audio (optional)
     let audioContext=null;
     function initAudio(){ if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)(); }
     function playCoinSound(){ try{ initAudio(); const now=audioContext.currentTime; const osc1=audioContext.createOscillator(); const gain1=audioContext.createGain(); osc1.type='sine'; osc1.frequency.value=1200; gain1.gain.setValueAtTime(0.3,now); gain1.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc1.connect(gain1); gain1.connect(audioContext.destination); osc1.start(now); osc1.stop(now+0.15); const osc2=audioContext.createOscillator(); const gain2=audioContext.createGain(); osc2.type='sine'; osc2.frequency.value=1800; gain2.gain.setValueAtTime(0.15,now); gain2.gain.exponentialRampToValueAtTime(0.005,now+0.1); osc2.connect(gain2); gain2.connect(audioContext.destination); osc2.start(now); osc2.stop(now+0.1); const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const noiseGain=audioContext.createGain(); noiseGain.gain.setValueAtTime(0.1,now); noiseGain.gain.exponentialRampToValueAtTime(0.001,now+0.05); noise.connect(noiseGain); noiseGain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.05); }catch(e){console.log('Audio not supported');} }
     function playSpinSound(){ try{ initAudio(); const now=audioContext.currentTime; const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const filter=audioContext.createBiquadFilter(); filter.type='bandpass'; filter.frequency.setValueAtTime(800,now); filter.frequency.exponentialRampToValueAtTime(200,now+0.5); filter.Q.value=5; const gain=audioContext.createGain(); gain.gain.setValueAtTime(0.2,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.5); noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.5); const osc=audioContext.createOscillator(); const oscGain=audioContext.createGain(); osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.4); oscGain.gain.setValueAtTime(0.1,now); oscGain.gain.exponentialRampToValueAtTime(0.001,now+0.4); osc.connect(oscGain); oscGain.connect(audioContext.destination); osc.start(now); osc.stop(now+0.4); }catch(e){console.log('Audio not supported');} }
     function animateCoinToButton(){ return new Promise((resolve)=>{ const coin=document.getElementById('coinToken'); const spinBtnRect=spinBtn.getBoundingClientRect(); const targetX=spinBtnRect.left+spinBtnRect.width/2; const targetY=spinBtnRect.top+spinBtnRect.height/2; const wheelRect=canvas.getBoundingClientRect(); const startX=wheelRect.right-30; const startY=wheelRect.bottom-30; coin.style.display='flex'; coin.style.left=startX+'px'; coin.style.top=startY+'px'; coin.style.transform='translate(0,0) scale(1.5)'; coin.offsetHeight; const dx=targetX-startX; const dy=targetY-startY; coin.style.transform=`translate(${dx}px, ${dy}px) scale(1)`; const onTransitionEnd=()=>{ coin.style.display='none'; coin.removeEventListener('transitionend',onTransitionEnd); playCoinSound(); resolve(); }; coin.addEventListener('transitionend',onTransitionEnd,{once:true}); }); }
 
-    // --- SPIN (unchanged) ---
+    // Close page after prize announcement
+    function closePage() {
+      // Attempt to close the window (only works if opened by script)
+      window.close();
+      // Fallback message in case browser blocks close
+      setTimeout(() => {
+        showAlertModal('Thank You', 'The page can now be closed.').then(() => {});
+      }, 500);
+    }
+
+    // SPIN
     async function spinWheel(){
       if(spinning)return;
       if(storedReceiptNumber===null){
@@ -250,9 +245,10 @@
           const wonPrize=prizes[actualIndex];
           spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
           saveSpinResult(receiptNumber,wonPrize.label).catch(e=>console.error(e));
-          if(window.printerAPI&&window.printerAPI.isConnected&&window.printerAPI.printWinningPrize){
-            window.printerAPI.printWinningPrize(wonPrize.label,receiptNumber,new Date());
-          }
+          // Announce prize and close page
+          showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nThank you for playing!`).then(() => {
+            closePage();
+          });
           animationFrame=null;
         }
       }
@@ -260,7 +256,7 @@
     }
     spinBtn.addEventListener('click',spinWheel); drawWheel();
 
-    // --- Check / Claim / Reprint (unchanged) ---
+    // Check / Claim / Reprint (unchanged, but reprint is kept for completeness; it won't affect closing)
     document.getElementById('checkButton').addEventListener('click',async()=>{
       const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
       if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
@@ -298,128 +294,17 @@
       }catch(error){ await showAlertModal('Error','Error claiming receipt.'); console.error(error); }
     });
     document.getElementById('reprintButton').addEventListener('click',async()=>{
-      if(!window.printerAPI||!window.printerAPI.isConnected){ await showAlertModal('Printer Error','Printer not connected. Please connect first.'); return; }
       const receiptNumber=await showInputModal('Reprint Ticket','Enter receipt number');
       if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
       try{
         const data=await fetchReceiptData(receiptNumber);
         if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found. Cannot reprint.`); return; }
-        const spinDate=parseSpinDate(data.timestamp);
-        await window.printerAPI.printWinningPrize(data.prize,receiptNumber,spinDate||new Date());
-        resultDiv.innerText=`🖨️ Reprint requested for ${receiptNumber}`;
+        // This page no longer has printer connection, so just show a message
+        await showAlertModal('Reprint not available', 'Printer connection is not enabled in this version.');
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // ---------- PRINTER INTEGRATION (smaller barcode) ----------
-    (function(){
-      const connectBtn=document.getElementById('connectPrinterButton');
-      const printerStatus=document.getElementById('printerStatus');
-      let gattServer=null, printerCharacteristic=null, isConnected=false;
-
-      function formatDate(date){ const d=date.getDate().toString().padStart(2,'0'); const m=(date.getMonth()+1).toString().padStart(2,'0'); const y=date.getFullYear(); return `${d}/${m}/${y}`; }
-
-      function generateReceiptData(prizeLabel,receiptNumber,spinDate=new Date()){
-        const encoder=new TextEncoder();
-        const validFrom=new Date(spinDate.getFullYear(),spinDate.getMonth(),spinDate.getDate());
-        const validTill=new Date(validFrom); validTill.setDate(validTill.getDate()+30);
-        const lines=[
-          '', 'LUCKY DRAW', 'CONGRATULATIONS', 'YOU ARE ENTITLED', '',
-          `FREE ${prizeLabel}`, 'WITH ANY PURCHASE', '(EXCEPT OPENING PROMOTION)', '',
-          `VALID FROM ${formatDate(validFrom)}`, `TILL ${formatDate(validTill)}`,
-          `Receipt No: ${receiptNumber}`, ''
-        ];
-        const text=lines.join('\n');
-        const commands=[];
-        // initialize, font, alignment
-        commands.push(0x1B,0x40, 0x1B,0x52,0x00, 0x1B,0x21,0x00, 0x1B,0x61,0x01);
-        for(let i=0;i<text.length;i++) commands.push(text.charCodeAt(i));
-        commands.push(0x0A); // newline
-
-        // Smaller barcode: height = 50 dots (0x32) , width = 1 (0x01)
-        commands.push(0x1D,0x68,0x32, 0x1D,0x77,0x01);
-        commands.push(0x1B,0x61,0x01); // center barcode
-        // Code128 (GS k 73) + length + data
-        const barcodeData=encoder.encode(receiptNumber);
-        const len=barcodeData.length;
-        commands.push(0x1D,0x6B,0x49,len);
-        for(let i=0;i<len;i++) commands.push(barcodeData[i]);
-        // feed and cut
-        commands.push(0x0A,0x0A, 0x1B,0x64,0x03, 0x1D,0x56,0x41,0x00);
-        return new Uint8Array(commands);
-      }
-
-      async function printWinningPrize(prizeLabel,receiptNumber,spinDate){
-        if(!isConnected||!printerCharacteristic){
-          printerStatus.innerText='❌ Printer not connected';
-          return false;
-        }
-        try{
-          const receipt=generateReceiptData(prizeLabel,receiptNumber,spinDate);
-          await printerCharacteristic.writeValue(receipt);
-          printerStatus.innerText='✅ Receipt printed (small barcode)';
-          return true;
-        }catch(error){
-          console.error('Print error:',error);
-          printerStatus.innerText=`❌ Print failed: ${error.message}`;
-          return false;
-        }
-      }
-
-      async function connectPrinter(){
-        try{
-          setStatus('🔍 Requesting Bluetooth device...');
-          connectBtn.disabled=true;
-          const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb']});
-          setStatus(`✅ Device selected: ${device.name||'Unnamed'}\nConnecting to GATT...`);
-          gattServer=await device.gatt.connect();
-          setStatus(`✅ GATT connected. Discovering services...`);
-          const services=await gattServer.getPrimaryServices();
-          let foundChar=null;
-          for(const service of services){
-            const chars=await service.getCharacteristics();
-            for(const char of chars){
-              if(char.properties.write||char.properties.writeWithoutResponse){ foundChar=char; break; }
-            }
-            if(foundChar) break;
-          }
-          if(!foundChar) throw new Error('No writable characteristic found');
-          printerCharacteristic=foundChar;
-          isConnected=true;
-          window.printerAPI.isConnected=true;
-          setStatus('✅ Printer ready!');
-          connectBtn.innerText='🖨️ disconnect';
-          spinBtn.style.display='flex';
-        }catch(error){
-          console.error('Connection error:',error);
-          setStatus(`❌ Failed: ${error.message}`,true);
-          gattServer=null; printerCharacteristic=null;
-        }finally{
-          connectBtn.disabled=false;
-        }
-      }
-
-      async function disconnectPrinter(){
-        try{
-          if(gattServer){ gattServer.disconnect(); gattServer=null; printerCharacteristic=null; }
-          isConnected=false;
-          window.printerAPI.isConnected=false;
-          setStatus('');
-          connectBtn.innerText='🖨️ connect printer';
-          spinBtn.style.display='none';
-          spinBtn.classList.remove('pulse-glow');
-        }catch(error){ console.error('Disconnect error:',error); setStatus('❌ Disconnect failed',true); }
-      }
-
-      function setStatus(msg,isError=false){
-        printerStatus.innerText=msg;
-        printerStatus.style.background=isError?'#ffeeee':'#f0f0f0';
-      }
-
-      connectBtn.addEventListener('click',()=>{ if(!isConnected) connectPrinter(); else disconnectPrinter(); });
-      window.printerAPI={isConnected:false, printWinningPrize:printWinningPrize};
-    })();
-
-    // --- URL receipt auto-detect (unchanged) ---
+    // URL receipt auto-detect
     (async function(){
       const urlParams=new URLSearchParams(window.location.search);
       const receiptFromUrl=urlParams.get('receipt');
