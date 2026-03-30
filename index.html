@@ -109,7 +109,7 @@
 
   <script>
     // ---------- CONFIGURATION ----------
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeXlDy7Bo-BpGuHRhNx-YU9jldr7Jf7H1RmvuJ29wRgB0xNtMsl0NOno0pervg0QQGOg/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeXlDy7Bo-BpGuHRhNx-YU9jldr7Jf7H1RmvuJ29wRgB0xNtMsl0NOno0pervg0QQGOg/exec"; 
 
     let prizes = [
       { label: "CAR AROMATIC RM 38", weight: 5 },
@@ -144,7 +144,7 @@
     const spinDuration = 12000;
     let spinStartRotation = 0, spinTargetRotation = 0;
     let storedReceiptNumber = null;
-    let customerId = null;  // <-- NEW: store customer ID from URL
+    let customerId = null;  // <-- Store customer ID from URL
     const TWO_PI = 2 * Math.PI;
     function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
 
@@ -179,21 +179,36 @@
     function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
     function hideLoading(){ loadingOverlay.style.display='none'; }
 
-    // Google Sheets API (modified to include customer_id)
+    // Google Sheets API (with customer_id support)
     async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
+    
+    // IMPROVED: saveSpinResult with error handling and customer_id
     async function saveSpinResult(receiptNumber, prize, customerId = null){ 
-      showLoading('Saving record...'); 
+      showLoading('Recording your win...'); 
       try{ 
         const fd = new URLSearchParams(); 
         fd.append('action','save'); 
         fd.append('receipt', receiptNumber); 
         fd.append('prize', prize);
-        if (customerId) fd.append('customer_id', customerId);
+        if (customerId) {
+          fd.append('customer_id', customerId);
+          console.log('Saving with customer_id:', customerId);
+        } else {
+          console.warn('No customer_id provided – saving without it');
+        }
         const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
         const res = await resp.json(); 
-        return res.success; 
+        if (!res.success) {
+          throw new Error(res.error || 'Unknown error from server');
+        }
+        return true; 
+      } catch(err) {
+        console.error('Save error:', err);
+        await showAlertModal('Save Failed', `Could not save your spin result: ${err.message}\nPlease take a screenshot of your win and contact support.`);
+        return false;
       } finally{ hideLoading(); } 
     }
+    
     async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
     function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
     function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
@@ -213,7 +228,7 @@
       }, 500);
     }
 
-    // SPIN
+    // SPIN with improved save handling
     async function spinWheel(){
       if(spinning)return;
       if(storedReceiptNumber===null){
@@ -255,10 +270,18 @@
           const actualIndex=Math.min(segmentIndex,prizes.length-1);
           const wonPrize=prizes[actualIndex];
           spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
-          // Save spin result with customer ID (if available)
-          saveSpinResult(receiptNumber, wonPrize.label, customerId).catch(e=>console.error(e));
-          showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nThank you for playing!`).then(() => {
-            closePage();
+          // Save spin result with customer ID (if any)
+          saveSpinResult(receiptNumber, wonPrize.label, customerId).then(saved => {
+            if (saved) {
+              showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nYour prize has been recorded. Thank you!`).then(() => {
+                closePage();
+              });
+            } else {
+              // Error already shown in saveSpinResult, but we can add extra note
+              showAlertModal('Attention', `You won ${wonPrize.label}, but we could not record it automatically. Please contact the store with your receipt number.`).then(() => {
+                closePage();
+              });
+            }
           });
           animationFrame=null;
         }
@@ -314,7 +337,7 @@
       }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
     });
 
-    // URL receipt auto-detect AND customer_id extraction
+    // URL receipt auto-detect AND customer_id extraction (FIXED)
     (async function(){
       const urlParams = new URLSearchParams(window.location.search);
       const receiptFromUrl = urlParams.get('receipt');
