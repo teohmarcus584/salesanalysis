@@ -3,90 +3,296 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+  <title>UL LUCKY SPIN - 3D Premium</title>
   <style>
-    /* ---------- Base Styles ---------- */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* FULLSCREEN - NO SIDE GAPS */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: #fafafa; color: #222; line-height: 1.5; padding: 16px;
-      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      background: radial-gradient(circle at 20% 30%, #1a2a1f, #0a0f0a);
+      font-family: 'Segoe UI', 'Poppins', 'Roboto', system-ui, sans-serif;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
     }
-    h1 { font-size: 1.8rem; font-weight: 400; margin: 0 0 8px 0; color: #111; text-align: center; }
-    .wheel-wrapper { position: relative; display: flex; justify-content: center; margin: 10px 0 20px 0; width: 100%; }
-    canvas { width: 100%; max-width: 500px; height: auto; aspect-ratio: 1/1; display: block; background: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+
+    .wheel-container {
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 20px 16px 30px 16px;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 8vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #FFE6A3, #D4AF37);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      margin: 0 0 12px 0;
+      text-align: center;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      margin: 10px 0 15px 0;
+      width: 100%;
+      filter: drop-shadow(0 20px 25px rgba(0,0,0,0.5));
+    }
+
+    canvas {
+      width: 100%;
+      max-width: min(92vw, 92vh);
+      height: auto;
+      aspect-ratio: 1/1;
+      display: block;
+      border-radius: 50%;
+      cursor: pointer;
+      margin: 0 auto;
+      background: #2c241a;
+    }
+
+    /* METALLIC SPIN BUTTON (center) */
     #spinButton {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: #0a7b3c; color: white; border: none; border-radius: 50%; width: 100px; height: 100px;
-      font-size: 1.4rem; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
-      transition: all 0.2s; z-index: 10; display: flex; align-items: center; justify-content: center; border: 2px solid white;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle at 30% 35%, #f5c542, #b47c10);
+      border: none;
+      border-radius: 50%;
+      width: min(115px, 22vw);
+      height: min(115px, 22vw);
+      font-size: clamp(1rem, 5vw, 1.7rem);
+      font-weight: 800;
+      font-family: inherit;
+      letter-spacing: 2px;
+      color: #2c1a04;
+      text-shadow: 0 1px 2px rgba(255,255,200,0.8);
+      box-shadow: 0 20px 25px -8px black, inset 0 1px 3px rgba(255,255,200,0.8), inset 0 -4px 0 #7a4c0b;
+      cursor: pointer;
+      transition: all 0.08s linear;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(1px);
     }
-    #spinButton:hover { background: #0c8f47; transform: translate(-50%, -50%) scale(1.05); }
-    #spinButton:active { transform: translate(-50%, -50%) scale(0.95); }
-    #spinButton:disabled { opacity: 0.5; pointer-events: none; background: #ccc; }
-    @keyframes pulse-glow {
-      0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1); }
-      50% { box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0.9), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1.05); }
-      100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 4px 15px rgba(0,0,0,0.3); transform: translate(-50%, -50%) scale(1); }
+
+    #spinButton:active {
+      transform: translate(-50%, -50%) scale(0.96);
+      box-shadow: 0 8px 12px -4px black, inset 0 1px 2px rgba(255,255,200,0.9);
     }
-    #spinButton.pulse-glow { animation: pulse-glow 1.5s infinite; }
-    .coin-token {
-      position: fixed; width: 40px; height: 40px; background: gold; border-radius: 50%; border: 2px solid #b8860b;
-      box-shadow: 0 0 10px gold; z-index: 1000; pointer-events: none; display: flex; align-items: center;
-      justify-content: center; font-size: 20px; font-weight: bold; color: #b8860b;
-      transition: transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1); will-change: transform;
+
+    #spinButton:disabled {
+      opacity: 0.6;
+      filter: grayscale(0.2);
+      transform: translate(-50%, -50%) scale(0.98);
+      pointer-events: none;
     }
-    .coin-token::after { content: "$"; }
-    .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 16px 0 8px 0; width: 100%; }
-    .action-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7), 0 20px 25px -8px black, inset 0 1px 3px gold; }
+      50% { box-shadow: 0 0 28px 15px rgba(255, 215, 0, 0.9), 0 20px 25px -5px black, inset 0 1px 5px rgb(255, 235, 120); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.6), 0 20px 25px -8px black, inset 0 1px 3px gold; }
+    }
+
+    #spinButton.pulse-glow {
+      animation: pulseGlow 1.3s infinite;
+    }
+
+    .controls {
+      margin-top: 12px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: clamp(12px, 4vw, 28px);
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+      width: 100%;
+      padding: 0 12px;
+    }
+
     .action-buttons button {
-      background: white; border: 1px solid #ccc; border-radius: 40px; padding: 12px 20px;
-      font-size: 1rem; font-weight: 500; color: #222; cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03); -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation; min-width: 140px;
+      background: linear-gradient(145deg, #2a2e2a, #1d211d);
+      border: none;
+      border-radius: 60px;
+      padding: 12px 22px;
+      font-size: clamp(0.85rem, 3.5vw, 1rem);
+      font-weight: 600;
+      color: #f5e7c8;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 0 #0f120f;
+      backdrop-filter: blur(4px);
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 1 auto;
     }
-    .action-buttons button:hover { background: #f2f2f2; }
-    #checkButton { background: #ff9800; color: white; border: none; }
-    #checkButton:hover { background: #f57c00; }
-    #claimButton { background: #2196F3; color: white; border: none; }
-    #claimButton:hover { background: #1976D2; }
-    #reprintButton { background: #9c27b0; color: white; border: none; }
-    #reprintButton:hover { background: #7b1fa2; }
-    @media (max-width: 480px) {
-      h1 { font-size: 1.5rem; }
-      #spinButton { width: 80px; height: 80px; font-size: 1.1rem; }
-      .coin-token { width: 30px; height: 30px; font-size: 16px; }
+
+    .action-buttons button:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #0f120f;
     }
+
+    #checkButton { background: linear-gradient(145deg, #f39c12, #e67e22); box-shadow: 0 6px 0 #b45f1b; color: #fff; }
+    #claimButton { background: linear-gradient(145deg, #2c7da0, #1f5068); box-shadow: 0 6px 0 #0f2c3b; }
+    #reprintButton { background: linear-gradient(145deg, #8e44ad, #6c3483); box-shadow: 0 6px 0 #4a235a; }
+
+    /* coin token animation */
+    .coin-token {
+      position: fixed;
+      width: 48px;
+      height: 48px;
+      background: radial-gradient(circle at 35% 35%, #FFD966, #D4AF37);
+      border-radius: 50%;
+      border: 2px solid #f1c40f;
+      box-shadow: 0 0 25px rgba(255,215,0,0.9);
+      z-index: 1000;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: bold;
+      color: #b8860b;
+      transition: transform 0.75s cubic-bezier(0.2, 1.1, 0.4, 1.2);
+      will-change: transform;
+    }
+
+    /* Modal styles (exactly as original) */
     .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);
-      display: none; align-items: center; justify-content: center; z-index: 2000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(6px);
     }
     .modal-container {
-      background: white; max-width: 400px; width: 90%; border-radius: 20px; padding: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3); animation: modalFadeIn 0.2s;
+      background: #1e1f1c;
+      border: 1px solid rgba(255,215,0,0.5);
+      border-radius: 32px;
+      box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+      max-width: 420px;
+      width: 85%;
+      padding: 28px 24px;
     }
-    @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-    .modal-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 16px; color: #222; }
-    .modal-input { width: 100%; padding: 12px 16px; font-size: 1rem; border: 1px solid #ccc; border-radius: 30px; margin-bottom: 20px; outline: none; }
-    .modal-input:focus { border-color: #0a7b3c; }
-    .modal-select { width: 100%; padding: 12px 16px; font-size: 1rem; border: 1px solid #ccc; border-radius: 30px; margin-bottom: 20px; outline: none; background: white; }
+    .modal-title { 
+      font-size: 1.6rem; 
+      font-weight: 600; 
+      margin-bottom: 20px; 
+      color: #FFD966; 
+      text-align: center;
+    }
+    .modal-input, .modal-select { 
+      width: 100%; 
+      padding: 14px 18px; 
+      font-size: 1rem; 
+      background: #2c2e2a; 
+      color: #f0e6d2; 
+      border: 1px solid #5e5b4a; 
+      border-radius: 48px; 
+      margin-bottom: 24px; 
+      outline: none; 
+    }
     .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
-    .modal-btn { padding: 12px 24px; border: none; border-radius: 40px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
-    .modal-btn-primary { background: #0a7b3c; color: white; }
-    .modal-btn-primary:hover { background: #0c8f47; }
-    .modal-btn-secondary { background: #f0f0f0; color: #222; }
-    .modal-btn-secondary:hover { background: #ddd; }
-    .modal-message { font-size: 1rem; margin: 16px 0; white-space: pre-wrap; word-break: break-word; }
-    .loading-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
-      display: none; align-items: center; justify-content: center; z-index: 3000; flex-direction: column;
+    .modal-btn { padding: 12px 24px; border-radius: 40px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+    .modal-btn-primary { background: #d4af37; color: #1e1a0c; font-weight: bold; }
+    .modal-btn-secondary { background: #3a3c37; color: #f0e6d2; }
+    .modal-message {
+      font-size: 1.1rem;
+      margin: 20px 0;
+      white-space: pre-wrap;
+      text-align: center;
+      color: #FFE484;
     }
-    .loading-spinner { width: 60px; height: 60px; border: 6px solid #f3f3f3; border-top: 6px solid #0a7b3c; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      flex-direction: column;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 6px solid #403a2b;
+      border-top: 6px solid #d4af37;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .loading-text { color: white; font-size: 1.2rem; font-weight: 500; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    .loading-text { color: #FFD966; font-size: 1.2rem; font-weight: 500; }
+    
+    #result {
+      text-align: center;
+      font-size: clamp(1rem, 4vw, 1.3rem);
+      margin-top: 20px;
+      font-weight: 700;
+      color: #FFE484;
+      text-shadow: 0 2px 3px black;
+      background: rgba(0,0,0,0.4);
+      padding: 10px 18px;
+      border-radius: 60px;
+      display: inline-block;
+      width: auto;
+      max-width: 90%;
+    }
+
+    @media (max-width: 600px) {
+      .wheel-container { padding: 12px 8px 20px 8px; }
+      .action-buttons button { padding: 10px 16px; }
+      canvas { max-width: 94vw; }
+    }
   </style>
 </head>
 <body>
-  <h1>UL LUCKY SPIN</h1>
+<div class="wheel-container">
+  <h1>✦ UL LUCKY SPIN ✦</h1>
   <div class="wheel-wrapper">
     <canvas id="wheelCanvas" width="700" height="700"></canvas>
     <button id="spinButton">SPIN</button>
@@ -94,278 +300,448 @@
   <div id="coinToken" class="coin-token" style="display: none;"></div>
   <div class="controls">
     <div class="action-buttons">
-      <button id="checkButton">🔍 Check Lucky Draw</button>
-      <button id="claimButton">💰 Claim Receipt</button>
-      <button id="reprintButton">🖨️ Reprint Ticket</button>
+      <button id="checkButton">🔍 CHECK TICKET</button>
+      <button id="claimButton">💰 CLAIM PRIZE</button>
+      <button id="reprintButton">🖨️ REPRINT</button>
     </div>
   </div>
   <div id="result"></div>
+</div>
 
-  <!-- Modals -->
-  <div id="inputModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="inputModalTitle">Enter receipt number</div><input type="text" id="inputModalField" class="modal-input" placeholder="Receipt number"><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
-  <div id="selectModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="selectModalTitle">Select prize</div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
-  <div id="alertModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="alertModalTitle">Message</div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons" style="justify-content: center;"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
-  <div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Loading...</div></div>
+<!-- MODALS -->
+<div id="inputModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="inputModalTitle">Enter receipt number</div><input type="text" id="inputModalField" class="modal-input" placeholder="Receipt number"><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="inputModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="inputModalOk">OK</button></div></div></div>
+<div id="selectModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="selectModalTitle">Select prize</div><select id="selectModalField" class="modal-select"></select><div class="modal-buttons"><button class="modal-btn modal-btn-secondary" id="selectModalCancel">Cancel</button><button class="modal-btn modal-btn-primary" id="selectModalOk">OK</button></div></div></div>
+<div id="alertModal" class="modal-overlay"><div class="modal-container"><div class="modal-title" id="alertModalTitle">Message</div><div class="modal-message" id="alertModalMessage"></div><div class="modal-buttons" style="justify-content: center;"><button class="modal-btn modal-btn-primary" id="alertModalOk">OK</button></div></div></div>
+<div id="loadingOverlay" class="loading-overlay"><div class="loading-spinner"></div><div class="loading-text" id="loadingMessage">Loading...</div></div>
 
-  <script>
-    // ---------- CONFIGURATION ----------
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyl6klLaZ1lSqsxNofZ6HW8sYGNbJJxEn3xL7VGFBHfkcxuydHt4HMwsLrGhsm3-AX9/exec"; 
+<script>
+  // ---------- CONFIGURATION ----------
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyl6klLaZ1lSqsxNofZ6HW8sYGNbJJxEn3xL7VGFBHfkcxuydHt4HMwsLrGhsm3-AX9/exec"; 
 
-    let prizes = [
-      { label: "CAR AROMATIC RM 38", weight: 5 },
-      { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-      { label: "CAR AROMATIC RM 38", weight: 5 },
-      { label: "LA PREVE 100ML RM 280", weight: 0 },
-      { label: "CAR AROMATIC RM 38", weight: 5 },
-      { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
-      { label: "CAR AROMATIC RM 38", weight: 5 },
-      { label: "200ML REED DIFFUSER RM 89", weight: 0 },
-      { label: "CAR AROMATIC RM 38", weight: 1 },
-      { label: "500ML BODY WASH RM 67", weight: 0 },
-      { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-      { label: "300ML LOTION RM 109", weight: 0 },
-      { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-      { label: "100ML ROOM SPRAY RM 89", weight: 0 },
-      { label: "NO WIN", weight: 0 },
-      { label: "100ML PILLOW MIST RM 75", weight: 1 },
-      { label: "NO WIN", weight: 0 },
-      { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
-    ];
+  let prizes = [
+    { label: "CAR AROMATIC RM 38", weight: 5 },
+    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
+    { label: "CAR AROMATIC RM 38", weight: 5 },
+    { label: "LA PREVE 100ML RM 280", weight: 0 },
+    { label: "CAR AROMATIC RM 38", weight: 5 },
+    { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
+    { label: "CAR AROMATIC RM 38", weight: 5 },
+    { label: "200ML REED DIFFUSER RM 89", weight: 0 },
+    { label: "CAR AROMATIC RM 38", weight: 1 },
+    { label: "500ML BODY WASH RM 67", weight: 0 },
+    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
+    { label: "300ML LOTION RM 109", weight: 0 },
+    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
+    { label: "100ML ROOM SPRAY RM 89", weight: 0 },
+    { label: "NO WIN", weight: 0 },
+    { label: "100ML PILLOW MIST RM 75", weight: 1 },
+    { label: "NO WIN", weight: 0 },
+    { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
+  ];
 
-    const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
-    const colorPalette = ["#FF6F61","#6B5B95","#88B04B","#FFA07A","#92A8D1","#F7CAC9","#955251","#B565A7","#009B77","#DD4124"];
+  const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
+  const colorPalette = ["#D32F2F","#F9A825","#2E7D32","#0288D1","#6A1B9A","#C2185B","#FFB300","#00796B","#AD1457","#455A64"];
 
-    const canvas = document.getElementById('wheelCanvas');
-    const ctx = canvas.getContext('2d');
-    const spinBtn = document.getElementById('spinButton');
-    const resultDiv = document.getElementById('result');
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  const spinBtn = document.getElementById('spinButton');
+  const resultDiv = document.getElementById('result');
 
-    let spinning = false, currentRotation = 0, animationFrame = null, spinStartTime = null;
-    const spinDuration = 12000;
-    let spinStartRotation = 0, spinTargetRotation = 0;
-    let storedReceiptNumber = null;
-    let customerId = null;  // <-- Store customer ID from URL
-    const TWO_PI = 2 * Math.PI;
-    function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
+  let spinning = false, currentRotation = 0, animationFrame = null, spinStartTime = null;
+  const spinDuration = 13000;
+  let spinStartRotation = 0, spinTargetRotation = 0;
+  let storedReceiptNumber = null;
+  let customerId = null;
+  const TWO_PI = 2 * Math.PI;
+  function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
 
-    function drawWheel() {
-      const centerX = canvas.width/2, centerY = canvas.height/2, radius = Math.min(centerX,centerY)-15;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      if (prizes.length === 0) { ctx.font='bold 24px Arial'; ctx.fillStyle='#999'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Add prizes',centerX,centerY); return; }
-      const segmentAngle = TWO_PI/prizes.length;
-      let startAngle = currentRotation;
-      for (let i=0; i<prizes.length; i++) {
-        const prize = prizes[i], endAngle = startAngle+segmentAngle;
-        ctx.beginPath(); ctx.moveTo(centerX,centerY); ctx.arc(centerX,centerY,radius,startAngle,endAngle); ctx.closePath();
-        ctx.fillStyle = colorPalette[i%colorPalette.length]; ctx.fill();
-        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
-        ctx.save(); ctx.translate(centerX,centerY); ctx.rotate(startAngle+segmentAngle/2);
-        const textRadius = radius*0.55, chordLength = 2*textRadius*Math.sin(segmentAngle/2)*0.95;
-        let fontSize=26; const minFontSize=18, text=prize.label;
-        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font=`bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-        while (fontSize>minFontSize && ctx.measureText(text).width>chordLength) { fontSize--; ctx.font=`bold ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`; }
-        ctx.fillStyle='#000'; ctx.shadowColor='rgba(255,255,255,0.8)'; ctx.shadowBlur=5; ctx.fillText(text,textRadius,0);
-        ctx.restore(); startAngle=endAngle;
-      }
-      ctx.beginPath(); ctx.arc(centerX,centerY,30,0,TWO_PI); ctx.fillStyle='#333'; ctx.shadowBlur=0; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(centerX-20,15); ctx.lineTo(centerX,45); ctx.lineTo(centerX+20,15); ctx.fillStyle='#f00'; ctx.fill();
+  // helper colour functions
+  function lightenColor(color, percent) {
+    if(color.startsWith('#')) {
+      let r = parseInt(color.slice(1,3),16);
+      let g = parseInt(color.slice(3,5),16);
+      let b = parseInt(color.slice(5,7),16);
+      r = Math.min(255, r + percent);
+      g = Math.min(255, g + percent);
+      b = Math.min(255, b + percent);
+      return `rgb(${r},${g},${b})`;
     }
-
-    // Modal helpers (unchanged)
-    function showInputModal(title,placeholder='') { return new Promise((resolve)=>{ const overlay=document.getElementById('inputModal'), titleEl=document.getElementById('inputModalTitle'), field=document.getElementById('inputModalField'), okBtn=document.getElementById('inputModalOk'), cancelBtn=document.getElementById('inputModalCancel'); titleEl.textContent=title; field.placeholder=placeholder; field.value=''; overlay.style.display='flex'; field.focus(); const onOk=()=>{cleanup();resolve(field.value.trim());}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); field.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); field.addEventListener('keydown',onKeyDown); }); }
-    function showSelectModal(title,options) { return new Promise((resolve)=>{ const overlay=document.getElementById('selectModal'), titleEl=document.getElementById('selectModalTitle'), select=document.getElementById('selectModalField'), okBtn=document.getElementById('selectModalOk'), cancelBtn=document.getElementById('selectModalCancel'); titleEl.textContent=title; select.innerHTML=''; options.forEach(opt=>{const option=document.createElement('option'); option.value=opt; option.textContent=opt; select.appendChild(option);}); overlay.style.display='flex'; const onOk=()=>{cleanup();resolve(select.value);}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); select.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); select.addEventListener('keydown',onKeyDown); }); }
-    function showAlertModal(title,message) { return new Promise((resolve)=>{ const overlay=document.getElementById('alertModal'), titleEl=document.getElementById('alertModalTitle'), msgEl=document.getElementById('alertModalMessage'), okBtn=document.getElementById('alertModalOk'); titleEl.textContent=title; msgEl.textContent=message; overlay.style.display='flex'; const onOk=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); resolve();}; okBtn.addEventListener('click',onOk); }); }
-    const loadingOverlay=document.getElementById('loadingOverlay'), loadingMessage=document.getElementById('loadingMessage');
-    function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
-    function hideLoading(){ loadingOverlay.style.display='none'; }
-
-    // Google Sheets API (with customer_id support)
-    async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
+    return color;
+  }
+  function darkenColor(color, percent) {
+    if(color.startsWith('#')) {
+      let r = parseInt(color.slice(1,3),16);
+      let g = parseInt(color.slice(3,5),16);
+      let b = parseInt(color.slice(5,7),16);
+      r = Math.max(30, r - percent);
+      g = Math.max(30, g - percent);
+      b = Math.max(30, b - percent);
+      return `rgb(${r},${g},${b})`;
+    }
+    return color;
+  }
+  
+  // ---------- 3D WHEEL DRAWING (realistic, no bubble highlights) ----------
+  function drawWheel() {
+    const centerX = canvas.width/2, centerY = canvas.height/2, radius = Math.min(centerX,centerY)-18;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (prizes.length === 0) {
+      ctx.font='bold 28px "Segoe UI"'; ctx.fillStyle='#FFD966'; ctx.shadowBlur=0;
+      ctx.fillText('Add prizes', centerX, centerY);
+      return;
+    }
+    const segmentAngle = TWO_PI / prizes.length;
     
-    // IMPROVED: saveSpinResult with error handling and customer_id
-    async function saveSpinResult(receiptNumber, prize, customerId = null){ 
-      showLoading('Recording your win...'); 
-      try{ 
-        const fd = new URLSearchParams(); 
-        fd.append('action','save'); 
-        fd.append('receipt', receiptNumber); 
-        fd.append('prize', prize);
-        if (customerId) {
-          fd.append('customer_id', customerId);
-          console.log('Saving with customer_id:', customerId);
-        } else {
-          console.warn('No customer_id provided – saving without it');
-        }
-        const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
-        const res = await resp.json(); 
-        if (!res.success) {
-          throw new Error(res.error || 'Unknown error from server');
-        }
-        return true; 
-      } catch(err) {
-        console.error('Save error:', err);
-        await showAlertModal('Save Failed', `Could not save your spin result: ${err.message}\nPlease take a screenshot of your win and contact support.`);
-        return false;
-      } finally{ hideLoading(); } 
+    // Outer metallic rings
+    ctx.save();
+    ctx.shadowBlur = 0;
+    for(let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + (i===0? 8 : 4), 0, TWO_PI);
+      ctx.strokeStyle = i===0 ? '#D4AF37' : '#F9E0A0';
+      ctx.lineWidth = i===0 ? 12 : 5;
+      ctx.shadowBlur = i===0 ? 12 : 6;
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius-2, 0, TWO_PI);
+    ctx.strokeStyle = '#2c2412';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    let startAngle = currentRotation;
+    for (let i = 0; i < prizes.length; i++) {
+      const endAngle = startAngle + segmentAngle;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius-3, startAngle, endAngle);
+      ctx.closePath();
+      
+      let baseColor = colorPalette[i % colorPalette.length];
+      const grad = ctx.createRadialGradient(centerX - radius*0.15, centerY - radius*0.15, 5, centerX, centerY, radius*0.9);
+      grad.addColorStop(0, lightenColor(baseColor, 25));
+      grad.addColorStop(0.7, baseColor);
+      grad.addColorStop(1, darkenColor(baseColor, 25));
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius-6, startAngle, endAngle);
+      ctx.strokeStyle = 'rgba(255,245,180,0.3)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      startAngle = endAngle;
     }
     
-    async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
-    function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
-    function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
-
-    // Audio (optional)
-    let audioContext=null;
-    function initAudio(){ if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)(); }
-    function playCoinSound(){ try{ initAudio(); const now=audioContext.currentTime; const osc1=audioContext.createOscillator(); const gain1=audioContext.createGain(); osc1.type='sine'; osc1.frequency.value=1200; gain1.gain.setValueAtTime(0.3,now); gain1.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc1.connect(gain1); gain1.connect(audioContext.destination); osc1.start(now); osc1.stop(now+0.15); const osc2=audioContext.createOscillator(); const gain2=audioContext.createGain(); osc2.type='sine'; osc2.frequency.value=1800; gain2.gain.setValueAtTime(0.15,now); gain2.gain.exponentialRampToValueAtTime(0.005,now+0.1); osc2.connect(gain2); gain2.connect(audioContext.destination); osc2.start(now); osc2.stop(now+0.1); const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const noiseGain=audioContext.createGain(); noiseGain.gain.setValueAtTime(0.1,now); noiseGain.gain.exponentialRampToValueAtTime(0.001,now+0.05); noise.connect(noiseGain); noiseGain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.05); }catch(e){console.log('Audio not supported');} }
-    function playSpinSound(){ try{ initAudio(); const now=audioContext.currentTime; const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const filter=audioContext.createBiquadFilter(); filter.type='bandpass'; filter.frequency.setValueAtTime(800,now); filter.frequency.exponentialRampToValueAtTime(200,now+0.5); filter.Q.value=5; const gain=audioContext.createGain(); gain.gain.setValueAtTime(0.2,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.5); noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.5); const osc=audioContext.createOscillator(); const oscGain=audioContext.createGain(); osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.4); oscGain.gain.setValueAtTime(0.1,now); oscGain.gain.exponentialRampToValueAtTime(0.001,now+0.4); osc.connect(oscGain); oscGain.connect(audioContext.destination); osc.start(now); osc.stop(now+0.4); }catch(e){console.log('Audio not supported');} }
-    function animateCoinToButton(){ return new Promise((resolve)=>{ const coin=document.getElementById('coinToken'); const spinBtnRect=spinBtn.getBoundingClientRect(); const targetX=spinBtnRect.left+spinBtnRect.width/2; const targetY=spinBtnRect.top+spinBtnRect.height/2; const wheelRect=canvas.getBoundingClientRect(); const startX=wheelRect.right-30; const startY=wheelRect.bottom-30; coin.style.display='flex'; coin.style.left=startX+'px'; coin.style.top=startY+'px'; coin.style.transform='translate(0,0) scale(1.5)'; coin.offsetHeight; const dx=targetX-startX; const dy=targetY-startY; coin.style.transform=`translate(${dx}px, ${dy}px) scale(1)`; const onTransitionEnd=()=>{ coin.style.display='none'; coin.removeEventListener('transitionend',onTransitionEnd); playCoinSound(); resolve(); }; coin.addEventListener('transitionend',onTransitionEnd,{once:true}); }); }
-
-    // Close page after prize announcement
-    function closePage() {
-      window.close();
-      setTimeout(() => {
-        showAlertModal('Thank You', 'The page can now be closed.').then(() => {});
-      }, 500);
+    // VOLUMETRIC SHADING (realistic)
+    const radGrad = ctx.createRadialGradient(centerX - radius*0.25, centerY - radius*0.25, 5, centerX, centerY, radius+5);
+    radGrad.addColorStop(0, 'rgba(255, 245, 200, 0.35)');
+    radGrad.addColorStop(0.5, 'rgba(0,0,0,0.0)');
+    radGrad.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius-2, 0, TWO_PI);
+    ctx.fillStyle = radGrad;
+    ctx.fill();
+    
+    // DRAW TEXT on segments
+    startAngle = currentRotation;
+    for (let i = 0; i < prizes.length; i++) {
+      const prize = prizes[i];
+      const midAngle = startAngle + segmentAngle/2;
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(midAngle);
+      const textRadius = radius * 0.62;
+      const chordLength = 2 * textRadius * Math.sin(segmentAngle/2) * 0.92;
+      let fontSize = 28;
+      const minFontSize = 16;
+      ctx.font = `bold ${fontSize}px "Poppins", "Segoe UI", system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      while (fontSize > minFontSize && ctx.measureText(prize.label).width > chordLength) {
+        fontSize--;
+        ctx.font = `bold ${fontSize}px "Poppins", "Segoe UI", system-ui`;
+      }
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = '#FFF5E6';
+      ctx.fillText(prize.label, textRadius, 4);
+      ctx.fillStyle = '#111111';
+      ctx.shadowBlur = 2;
+      ctx.fillText(prize.label, textRadius-0.5, 3.5);
+      ctx.fillStyle = '#FFFDE7';
+      ctx.shadowBlur = 3;
+      ctx.fillText(prize.label, textRadius, 3);
+      ctx.restore();
+      startAngle += segmentAngle;
     }
-
-    // SPIN with improved save handling
-    async function spinWheel(){
-      if(spinning)return;
-      if(storedReceiptNumber===null){
-        const receiptNumber=await showInputModal('Enter receipt number','Receipt number');
-        if(receiptNumber===null||receiptNumber===''){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
-        try{
-          const existing=await fetchReceiptData(receiptNumber);
-          if(existing!==null){ await showAlertModal('Already Used',`Receipt ${receiptNumber} already won: ${existing.prize}${existing.claimed?' (claimed)':' (not claimed)'}. Cannot use again.`); return; }
-        }catch(error){ await showAlertModal('Error','Error checking receipt. Please try again.'); console.error(error); return; }
-        storedReceiptNumber=receiptNumber; resultDiv.innerText=`Valid! Token added -- Spin the wheel, Good luck...`;
-        await animateCoinToButton(); spinBtn.classList.add('pulse-glow'); return;
-      }
-      const receiptNumber=storedReceiptNumber; storedReceiptNumber=null; spinBtn.classList.remove('pulse-glow'); playSpinSound();
-      if(prizes.length===0){ resultDiv.innerText='Add some prizes first!'; return; }
-      const totalWeight=prizes.reduce((s,p)=>s+p.weight,0);
-      if(totalWeight===0){ resultDiv.innerText='All weights are zero – nothing to win!'; return; }
-      let rand=Math.random()*totalWeight; let cumulative=0,selectedIndex=0;
-      for(let i=0;i<prizes.length;i++){ cumulative+=prizes[i].weight; if(rand<cumulative){ selectedIndex=i; break; } }
-      const centerX=canvas.width/2,centerY=canvas.height/2,pointerTip={x:centerX,y:45};
-      const pointerAngle=Math.atan2(pointerTip.y-centerY,pointerTip.x-centerX);
-      const normalizedPointerAngle=normalizeAngle(pointerAngle);
-      const segmentAngle=TWO_PI/prizes.length;
-      const randomOffset=Math.random()*segmentAngle;
-      const targetAngleInWheel=selectedIndex*segmentAngle+randomOffset;
-      let targetBaseRotation=normalizeAngle(normalizedPointerAngle-targetAngleInWheel);
-      const extraFullTurns=12+Math.floor(Math.random()*9);
-      const extraAngle=extraFullTurns*TWO_PI;
-      spinTargetRotation=targetBaseRotation+extraAngle; spinStartRotation=currentRotation; spinStartTime=performance.now();
-      spinning=true; spinBtn.disabled=true; if(animationFrame)cancelAnimationFrame(animationFrame);
-      function animateSpin(now){
-        const elapsed=now-spinStartTime; let progress=Math.min(elapsed/spinDuration,1);
-        const easeOutQuart=1-Math.pow(1-progress,4);
-        currentRotation=normalizeAngle(spinStartRotation+(spinTargetRotation-spinStartRotation)*easeOutQuart);
-        drawWheel();
-        if(progress<1){ animationFrame=requestAnimationFrame(animateSpin); }
-        else{
-          const wheelAngleAtPointer=normalizeAngle(normalizedPointerAngle-currentRotation);
-          const segmentIndex=Math.floor(wheelAngleAtPointer/segmentAngle);
-          const actualIndex=Math.min(segmentIndex,prizes.length-1);
-          const wonPrize=prizes[actualIndex];
-          spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
-          // Save spin result with customer ID (if any)
-          saveSpinResult(receiptNumber, wonPrize.label, customerId).then(saved => {
-            if (saved) {
-              showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nYour prize has been recorded. Thank you!`).then(() => {
-                closePage();
-              });
-            } else {
-              // Error already shown in saveSpinResult, but we can add extra note
-              showAlertModal('Attention', `You won ${wonPrize.label}, but we could not record it automatically. Please contact the store with your receipt number.`).then(() => {
-                closePage();
-              });
-            }
-          });
-          animationFrame=null;
-        }
-      }
-      animationFrame=requestAnimationFrame(animateSpin);
+    
+    // 3D CENTER CAP (luxury gem)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 34, 0, TWO_PI);
+    const centerGrad = ctx.createLinearGradient(centerX-15, centerY-15, centerX+20, centerY+20);
+    centerGrad.addColorStop(0, '#FFD966');
+    centerGrad.addColorStop(0.6, '#B8860B');
+    centerGrad.addColorStop(1, '#8B6914');
+    ctx.fillStyle = centerGrad;
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 28, 0, TWO_PI);
+    ctx.fillStyle = '#FFE0A3';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 20, 0, TWO_PI);
+    ctx.fillStyle = '#F5B642';
+    ctx.fill();
+    ctx.fillStyle = '#FFF1B5';
+    ctx.font = 'bold 26px "Segoe UI"';
+    ctx.shadowBlur = 3;
+    ctx.fillText("✨", centerX-10, centerY+12);
+    ctx.fillText("✨", centerX+6, centerY-6);
+    
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius-6, 0, TWO_PI);
+    ctx.fillStyle = 'rgba(255,248,220,0.08)';
+    ctx.fill();
+    ctx.restore();
+    
+    // RED POINTER ARROW attached to the top ring (pointing downward)
+    drawRedArrowPointer(centerX, centerY, radius);
+  }
+  
+  // RED ARROW that sits on the middle of the outer ring, pointing down
+  function drawRedArrowPointer(cx, cy, wheelRadius) {
+    ctx.save();
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    
+    // Middle of the outer metallic ring (radius + 4)
+    const ringMidRadius = wheelRadius + 4;
+    const topY = cy - ringMidRadius;        // top of ring centerline
+    const arrowBaseY = topY - 1;            // just above the ring
+    const arrowTipY = topY + 22;            // pointing downward into wheel
+    
+    const arrowWidth = 42;
+    const halfWidth = arrowWidth / 2;
+    const leftX = cx - halfWidth;
+    const rightX = cx + halfWidth;
+    
+    // Main arrow shape (chevron style)
+    ctx.beginPath();
+    ctx.moveTo(leftX, arrowBaseY);
+    ctx.lineTo(cx, arrowTipY);
+    ctx.lineTo(rightX, arrowBaseY);
+    ctx.closePath();
+    
+    // Metallic red gradient for bold look
+    const redGrad = ctx.createLinearGradient(leftX, arrowBaseY-5, rightX, arrowTipY+5);
+    redGrad.addColorStop(0, '#E62020');
+    redGrad.addColorStop(0.6, '#C00');
+    redGrad.addColorStop(1, '#8B0000');
+    ctx.fillStyle = redGrad;
+    ctx.fill();
+    
+    // Highlight edge (bright red)
+    ctx.beginPath();
+    ctx.moveTo(leftX+6, arrowBaseY-1);
+    ctx.lineTo(cx, arrowTipY-5);
+    ctx.lineTo(rightX-6, arrowBaseY-1);
+    ctx.fillStyle = '#FF4D4D';
+    ctx.fill();
+    
+    // Decorative rivet / bolt on top of the ring
+    ctx.beginPath();
+    ctx.arc(cx, arrowBaseY-2, 7, 0, TWO_PI);
+    ctx.fillStyle = '#D4AF37';
+    ctx.shadowBlur = 3;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, arrowBaseY-2, 3.5, 0, TWO_PI);
+    ctx.fillStyle = '#8B0000';
+    ctx.fill();
+    ctx.fillStyle = "#FFF2B5";
+    ctx.font = "bold 14px monospace";
+    ctx.fillText("▼", cx-4, arrowBaseY);
+    
+    ctx.restore();
+  }
+  
+  // ---------- MODAL HELPERS (original style) ----------
+  function showInputModal(title,placeholder='') { return new Promise((resolve)=>{ const overlay=document.getElementById('inputModal'), titleEl=document.getElementById('inputModalTitle'), field=document.getElementById('inputModalField'), okBtn=document.getElementById('inputModalOk'), cancelBtn=document.getElementById('inputModalCancel'); titleEl.textContent=title; field.placeholder=placeholder; field.value=''; overlay.style.display='flex'; field.focus(); const onOk=()=>{cleanup();resolve(field.value.trim());}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); field.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); field.addEventListener('keydown',onKeyDown); }); }
+  function showSelectModal(title,options) { return new Promise((resolve)=>{ const overlay=document.getElementById('selectModal'), titleEl=document.getElementById('selectModalTitle'), select=document.getElementById('selectModalField'), okBtn=document.getElementById('selectModalOk'), cancelBtn=document.getElementById('selectModalCancel'); titleEl.textContent=title; select.innerHTML=''; options.forEach(opt=>{const option=document.createElement('option'); option.value=opt; option.textContent=opt; select.appendChild(option);}); overlay.style.display='flex'; const onOk=()=>{cleanup();resolve(select.value);}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); select.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); select.addEventListener('keydown',onKeyDown); }); }
+  function showAlertModal(title,message) { return new Promise((resolve)=>{ const overlay=document.getElementById('alertModal'), titleEl=document.getElementById('alertModalTitle'), msgEl=document.getElementById('alertModalMessage'), okBtn=document.getElementById('alertModalOk'); titleEl.textContent=title; msgEl.textContent=message; overlay.style.display='flex'; const onOk=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); resolve();}; okBtn.addEventListener('click',onOk); }); }
+  const loadingOverlay=document.getElementById('loadingOverlay'), loadingMessage=document.getElementById('loadingMessage');
+  function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
+  function hideLoading(){ loadingOverlay.style.display='none'; }
+  
+  // ---------- BACKEND API (identical to original, with customer_id) ----------
+  async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
+  async function saveSpinResult(receiptNumber, prize, customerId = null){ 
+    showLoading('Recording your win...'); 
+    try{ 
+      const fd = new URLSearchParams(); 
+      fd.append('action','save'); 
+      fd.append('receipt', receiptNumber); 
+      fd.append('prize', prize);
+      if (customerId) fd.append('customer_id', customerId);
+      const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
+      const res = await resp.json(); 
+      if (!res.success) throw new Error(res.error || 'Server error');
+      return true; 
+    } catch(err) {
+      console.error('Save error:', err);
+      await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
+      return false;
+    } finally{ hideLoading(); } 
+  }
+  async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
+  function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
+  function closePage() { window.close(); setTimeout(()=>{ showAlertModal('Thank You', 'The page can now be closed.'); }, 500); }
+  
+  // ---------- AUDIO (original) ----------
+  let audioContext=null;
+  function initAudio(){ if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)(); }
+  function playCoinSound(){ try{ initAudio(); const now=audioContext.currentTime; const osc1=audioContext.createOscillator(); const gain1=audioContext.createGain(); osc1.type='sine'; osc1.frequency.value=1200; gain1.gain.setValueAtTime(0.3,now); gain1.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc1.connect(gain1); gain1.connect(audioContext.destination); osc1.start(now); osc1.stop(now+0.15); const osc2=audioContext.createOscillator(); const gain2=audioContext.createGain(); osc2.type='sine'; osc2.frequency.value=1800; gain2.gain.setValueAtTime(0.15,now); gain2.gain.exponentialRampToValueAtTime(0.005,now+0.1); osc2.connect(gain2); gain2.connect(audioContext.destination); osc2.start(now); osc2.stop(now+0.1); const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const noiseGain=audioContext.createGain(); noiseGain.gain.setValueAtTime(0.1,now); noiseGain.gain.exponentialRampToValueAtTime(0.001,now+0.05); noise.connect(noiseGain); noiseGain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.05); }catch(e){console.log('Audio not supported');} }
+  function playSpinSound(){ try{ initAudio(); const now=audioContext.currentTime; const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const filter=audioContext.createBiquadFilter(); filter.type='bandpass'; filter.frequency.setValueAtTime(800,now); filter.frequency.exponentialRampToValueAtTime(200,now+0.5); filter.Q.value=5; const gain=audioContext.createGain(); gain.gain.setValueAtTime(0.2,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.5); noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.5); const osc=audioContext.createOscillator(); const oscGain=audioContext.createGain(); osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.4); oscGain.gain.setValueAtTime(0.1,now); oscGain.gain.exponentialRampToValueAtTime(0.001,now+0.4); osc.connect(oscGain); oscGain.connect(audioContext.destination); osc.start(now); osc.stop(now+0.4); }catch(e){console.log('Audio not supported');} }
+  function animateCoinToButton(){ return new Promise((resolve)=>{ const coin=document.getElementById('coinToken'); const spinBtnRect=spinBtn.getBoundingClientRect(); const targetX=spinBtnRect.left+spinBtnRect.width/2; const targetY=spinBtnRect.top+spinBtnRect.height/2; const wheelRect=canvas.getBoundingClientRect(); const startX=wheelRect.right-30; const startY=wheelRect.bottom-30; coin.style.display='flex'; coin.style.left=startX+'px'; coin.style.top=startY+'px'; coin.style.transform='translate(0,0) scale(1.5)'; coin.offsetHeight; const dx=targetX-startX; const dy=targetY-startY; coin.style.transform=`translate(${dx}px, ${dy}px) scale(1)`; const onTransitionEnd=()=>{ coin.style.display='none'; coin.removeEventListener('transitionend',onTransitionEnd); playCoinSound(); resolve(); }; coin.addEventListener('transitionend',onTransitionEnd,{once:true}); }); }
+  
+  // ---------- SPIN LOGIC (original with popup modal) ----------
+  async function spinWheel(){
+    if(spinning) return;
+    if(storedReceiptNumber===null){
+      const receiptNumber=await showInputModal('Enter receipt number','Receipt number');
+      if(receiptNumber===null||receiptNumber===''){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
+      try{
+        const existing=await fetchReceiptData(receiptNumber);
+        if(existing!==null){ await showAlertModal('Already Used',`Receipt ${receiptNumber} already won: ${existing.prize}${existing.claimed?' (claimed)':' (not claimed)'}. Cannot use again.`); return; }
+      }catch(error){ await showAlertModal('Error','Error checking receipt. Please try again.'); console.error(error); return; }
+      storedReceiptNumber=receiptNumber; resultDiv.innerText=`Valid! Token added -- Spin the wheel, Good luck...`;
+      await animateCoinToButton(); spinBtn.classList.add('pulse-glow'); return;
     }
-    spinBtn.addEventListener('click',spinWheel); drawWheel();
-
-    // Check / Claim / Reprint (unchanged)
-    document.getElementById('checkButton').addEventListener('click',async()=>{
-      const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
-      if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
-      try{
-        const data=await fetchReceiptData(receiptNumber);
-        if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found in records.`); return; }
-        let statusLine='';
-        if(data.claimed) statusLine=`Claimed (value: RM ${data.value||'N/A'})`;
-        else{ const expiry=getExpiryInfo(data.timestamp); if(!expiry.valid) statusLine=`Not claimed – ${expiry.message}`; else if(expiry.expired) statusLine=`Expired on ${expiry.expiryDate.toLocaleDateString()}`; else statusLine=`Valid (expires on ${expiry.expiryDate.toLocaleDateString()})`; }
-        await showAlertModal('Receipt Info',`Receipt: ${receiptNumber}\nPrize: ${data.prize}\nStatus: ${statusLine}`);
-      }catch(error){ await showAlertModal('Error','Error checking receipt.'); console.error(error); }
-    });
-    document.getElementById('claimButton').addEventListener('click',async()=>{
-      const receiptNumber=await showInputModal('Claim Receipt','Receipt number');
-      if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
-      try{
-        const data=await fetchReceiptData(receiptNumber);
-        if(!data){
-          const prize=await showSelectModal('Select prize won',uniquePrizes); if(prize===null) return;
-          const value=await showInputModal('Enter NEW receipt value (RM)','RM amount'); if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
-          const saved=await saveSpinResult(receiptNumber,prize, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
-          const claimed=await claimReceipt(receiptNumber,value);
-          if(claimed) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
-          else await showAlertModal('Error','Claim failed after saving record.');
-          return;
-        }
-        if(data.claimed){ await showAlertModal('Already Claimed',`Receipt ${receiptNumber} already claimed with prize: ${data.prize} (value: RM ${data.value||'N/A'}).`); return; }
-        const expiry=getExpiryInfo(data.timestamp);
-        if(!expiry.valid||expiry.expired){ await showAlertModal('Expired',`This prize expired on ${expiry.expiryDate?.toLocaleDateString()||'unknown date'}. Cannot claim.`); return; }
-        const value=await showInputModal(`Enter NEW receipt value (RM) for prize ${data.prize}`,'RM amount');
-        if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
-        const success=await claimReceipt(receiptNumber,value);
-        if(success) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${data.prize} with value RM ${value}.`);
-        else await showAlertModal('Error','Claim failed.');
-      }catch(error){ await showAlertModal('Error','Error claiming receipt.'); console.error(error); }
-    });
-    document.getElementById('reprintButton').addEventListener('click',async()=>{
-      const receiptNumber=await showInputModal('Reprint Ticket','Enter receipt number');
-      if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
-      try{
-        const data=await fetchReceiptData(receiptNumber);
-        if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found. Cannot reprint.`); return; }
-        await showAlertModal('Reprint not available', 'Printer connection is not enabled in this version.');
-      }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
-    });
-
-    // URL receipt auto-detect AND customer_id extraction (FIXED)
-    (async function(){
-      const urlParams = new URLSearchParams(window.location.search);
-      const receiptFromUrl = urlParams.get('receipt');
-      const customerIdFromUrl = urlParams.get('customer_id');
-      if (customerIdFromUrl) {
-        customerId = customerIdFromUrl;
-        console.log('Customer ID loaded:', customerId);
-      }
-      if(receiptFromUrl){
-        storedReceiptNumber=receiptFromUrl;
-        try{
-          const existing=await fetchReceiptData(receiptFromUrl);
-          if(existing!==null){
-            await showAlertModal('Already Used',`Receipt ${receiptFromUrl} already won: ${existing.prize}${existing.claimed?' (claimed)':' (not claimed)'}. Cannot use again.`);
-            storedReceiptNumber=null;
-            resultDiv.innerText='This receipt has already been used.';
-          }else{
-            resultDiv.innerText=`Receipt ${receiptFromUrl} loaded. Click SPIN to try your luck!`;
-            await animateCoinToButton();
-            spinBtn.classList.add('pulse-glow');
+    const receiptNumber=storedReceiptNumber; storedReceiptNumber=null; spinBtn.classList.remove('pulse-glow'); playSpinSound();
+    if(prizes.length===0){ resultDiv.innerText='Add some prizes first!'; return; }
+    const totalWeight=prizes.reduce((s,p)=>s+p.weight,0);
+    if(totalWeight===0){ resultDiv.innerText='All weights are zero – nothing to win!'; return; }
+    let rand=Math.random()*totalWeight; let cumulative=0,selectedIndex=0;
+    for(let i=0;i<prizes.length;i++){ cumulative+=prizes[i].weight; if(rand<cumulative){ selectedIndex=i; break; } }
+    
+    const centerX=canvas.width/2, centerY=canvas.height/2;
+    const radius = Math.min(centerX,centerY)-18;
+    const ringMidRadius = radius + 4;
+    const pointerTip = {x: centerX, y: centerY - ringMidRadius - 1};
+    const pointerAngle = Math.atan2(pointerTip.y - centerY, pointerTip.x - centerX);
+    const normalizedPointerAngle = normalizeAngle(pointerAngle);
+    const segmentAngle = TWO_PI / prizes.length;
+    const randomOffset = Math.random() * segmentAngle;
+    const targetAngleInWheel = selectedIndex * segmentAngle + randomOffset;
+    let targetBaseRotation = normalizeAngle(normalizedPointerAngle - targetAngleInWheel);
+    const extraFullTurns = 12 + Math.floor(Math.random() * 9);
+    const extraAngle = extraFullTurns * TWO_PI;
+    spinTargetRotation = targetBaseRotation + extraAngle; spinStartRotation = currentRotation; spinStartTime = performance.now();
+    spinning=true; spinBtn.disabled=true; if(animationFrame)cancelAnimationFrame(animationFrame);
+    function animateSpin(now){
+      const elapsed=now-spinStartTime; let progress=Math.min(elapsed/spinDuration,1);
+      const easeOutQuart=1-Math.pow(1-progress,4);
+      currentRotation=normalizeAngle(spinStartRotation+(spinTargetRotation-spinStartRotation)*easeOutQuart);
+      drawWheel();
+      if(progress<1){ animationFrame=requestAnimationFrame(animateSpin); }
+      else{
+        const wheelAngleAtPointer=normalizeAngle(normalizedPointerAngle-currentRotation);
+        const segmentIndex=Math.floor(wheelAngleAtPointer/segmentAngle);
+        const actualIndex=Math.min(segmentIndex,prizes.length-1);
+        const wonPrize=prizes[actualIndex];
+        spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
+        saveSpinResult(receiptNumber, wonPrize.label, customerId).then(saved => {
+          if (saved) {
+            showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nYour prize has been recorded. Thank you!`).then(() => closePage());
+          } else {
+            showAlertModal('Attention', `You won ${wonPrize.label}, but we could not record it automatically. Please contact the store with your receipt number.`).then(() => closePage());
           }
-        }catch(error){
-          console.error('Error checking receipt from URL:',error);
-          resultDiv.innerText='Error validating receipt. Please try manually.';
-          storedReceiptNumber=null;
-        }
+        });
+        animationFrame=null;
       }
-    })();
-  </script>
+    }
+    animationFrame=requestAnimationFrame(animateSpin);
+  }
+  spinBtn.addEventListener('click',spinWheel); drawWheel();
+
+  // ---------- BUTTON HANDLERS (original full functionality) ----------
+  document.getElementById('checkButton').addEventListener('click',async()=>{
+    const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
+    if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
+    try{
+      const data=await fetchReceiptData(receiptNumber);
+      if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found in records.`); return; }
+      let statusLine='';
+      if(data.claimed) statusLine=`Claimed (value: RM ${data.value||'N/A'})`;
+      else{ const expiry=getExpiryInfo(data.timestamp); if(!expiry.valid) statusLine=`Not claimed – ${expiry.message}`; else if(expiry.expired) statusLine=`Expired on ${expiry.expiryDate.toLocaleDateString()}`; else statusLine=`Valid (expires on ${expiry.expiryDate.toLocaleDateString()})`; }
+      await showAlertModal('Receipt Info',`Receipt: ${receiptNumber}\nPrize: ${data.prize}\nStatus: ${statusLine}`);
+    }catch(error){ await showAlertModal('Error','Error checking receipt.'); console.error(error); }
+  });
+  document.getElementById('claimButton').addEventListener('click',async()=>{
+    const receiptNumber=await showInputModal('Claim Receipt','Receipt number');
+    if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
+    try{
+      const data=await fetchReceiptData(receiptNumber);
+      if(!data){
+        const prize=await showSelectModal('Select prize won',uniquePrizes); if(prize===null) return;
+        const value=await showInputModal('Enter NEW receipt value (RM)','RM amount'); if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
+        const saved=await saveSpinResult(receiptNumber,prize, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
+        const claimed=await claimReceipt(receiptNumber,value);
+        if(claimed) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
+        else await showAlertModal('Error','Claim failed after saving record.');
+        return;
+      }
+      if(data.claimed){ await showAlertModal('Already Claimed',`Receipt ${receiptNumber} already claimed with prize: ${data.prize} (value: RM ${data.value||'N/A'}).`); return; }
+      const expiry=getExpiryInfo(data.timestamp);
+      if(!expiry.valid||expiry.expired){ await showAlertModal('Expired',`This prize expired on ${expiry.expiryDate?.toLocaleDateString()||'unknown date'}. Cannot claim.`); return; }
+      const value=await showInputModal(`Enter NEW receipt value (RM) for prize ${data.prize}`,'RM amount');
+      if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
+      const success=await claimReceipt(receiptNumber,value);
+      if(success) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${data.prize} with value RM ${value}.`);
+      else await showAlertModal('Error','Claim failed.');
+    }catch(error){ await showAlertModal('Error','Error claiming receipt.'); console.error(error); }
+  });
+  document.getElementById('reprintButton').addEventListener('click',async()=>{
+    const receiptNumber=await showInputModal('Reprint Ticket','Enter receipt number');
+    if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
+    try{
+      const data=await fetchReceiptData(receiptNumber);
+      if(!data){ await showAlertModal('Not Found',`Receipt ${receiptNumber} not found. Cannot reprint.`); return; }
+      await showAlertModal('Reprint not available', 'Printer connection is not enabled in this version.');
+    }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
+  });
+
+  // URL receipt + customer_id detection
+  (async function(){
+    const urlParams = new URLSearchParams(window.location.search);
+    const receiptFromUrl = urlParams.get('receipt');
+    const customerIdFromUrl = urlParams.get('customer_id');
+    if (customerIdFromUrl) { customerId = customerIdFromUrl; console.log('Customer ID loaded:', customerId); }
+    if(receiptFromUrl){
+      storedReceiptNumber=receiptFromUrl;
+      try{
+        const existing=await fetchReceiptData(receiptFromUrl);
+        if(existing!==null){
+          await showAlertModal('Already Used',`Receipt ${receiptFromUrl} already won: ${existing.prize}${existing.claimed?' (claimed)':' (not claimed)'}. Cannot use again.`);
+          storedReceiptNumber=null;
+          resultDiv.innerText='This receipt has already been used.';
+        }else{
+          resultDiv.innerText=`Receipt ${receiptFromUrl} loaded. Click SPIN to try your luck!`;
+          await animateCoinToButton();
+          spinBtn.classList.add('pulse-glow');
+        }
+      }catch(error){ console.error('Error checking receipt from URL:',error); resultDiv.innerText='Error validating receipt. Please try manually.'; storedReceiptNumber=null; }
+    }
+  })();
+</script>
 </body>
 </html>
