@@ -304,27 +304,30 @@
 
 <script>
   // ---------- CONFIGURATION ----------
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyl6klLaZ1lSqsxNofZ6HW8sYGNbJJxEn3xL7VGFBHfkcxuydHt4HMwsLrGhsm3-AX9/exec"; 
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynUwttCsy9qEtWNB_jZ2X6P5CPfL8B6ESnchm02SUi58A-G9-SYWzykfynC-L1HPVyVQ/exec"; 
 
-  let prizes = [
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "LA PREVE 100ML RM 280", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "100ML SIGNATURE EDP RM 180", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 5 },
-    { label: "200ML REED DIFFUSER RM 89", weight: 0 },
-    { label: "CAR AROMATIC RM 38", weight: 1 },
-    { label: "500ML BODY WASH RM 67", weight: 0 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-    { label: "300ML LOTION RM 109", weight: 0 },
-    { label: "15ML TRAVEL PERFUME RM 75", weight: 1 },
-    { label: "100ML ROOM SPRAY RM 89", weight: 0 },
-    { label: "NO WIN", weight: 0 },
-    { label: "100ML PILLOW MIST RM 75", weight: 1 },
-    { label: "NO WIN", weight: 0 },
-    { label: "HUMIDIFIER MACHINE RM 249", weight: 0 },
+  // New prize list with discount values (matching the requested list)
+  const prizes = [
+    { label: "LA PREVE 100ML RM 280", weight: 0, discountValue: 280 },
+    { label: "TRAVEL PERFUME BUY 1 FREE 1", weight: 1, discountValue: 75 },
+    { label: "100ML SIGNATURE EDP RM 180", weight: 0, discountValue: 180 },
+    { label: "CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
+    { label: "200ML REED DIFFUSER RM 89", weight: 0, discountValue: 89 },
+    { label: "100ML SIG EDP BUY 1 FREE 1", weight: 0, discountValue: 180 },
+    { label: "500ML BODY WASH RM 67", weight: 0, discountValue: 67 },
+    { label: "15ML TRAVEL PERFUME RM 75", weight: 1, discountValue: 75 },
+    { label: "300ML LOTION RM 109", weight: 0, discountValue: 109 },
+    { label: "100ML EDP BUY 1 FREE 1 TRAVEL PERFUME", weight: 0, discountValue: 75 },
+    { label: "100ML ROOM SPRAY RM 89", weight: 0, discountValue: 89 },
+    { label: "NO WIN", weight: 0, discountValue: 0 },
+    { label: "100ML PILLOW MIST RM 75", weight: 1, discountValue: 75 },
+    { label: "100ML SIG EDP BUY 2 FREE 2", weight: 0, discountValue: 360 },
+    { label: "HUMIDIFIER MACHINE RM 249", weight: 0, discountValue: 249 },
+    // Additional duplicates of CAR AROMATIC to meet weight distribution (weight 5 total)
+    { label: "CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
+    { label: "CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
+    { label: "CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
+    { label: "CAR AROMATIC RM 38", weight: 5, discountValue: 38 }
   ];
 
   const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
@@ -343,7 +346,6 @@
   const TWO_PI = 2 * Math.PI;
   function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
 
-  // ---------- 2D FLAT WHEEL DRAWING ----------
   function drawWheel() {
     const w = canvas.width, h = canvas.height;
     const centerX = w/2, centerY = h/2;
@@ -408,7 +410,6 @@
       startAngle += segmentAngle;
     }
     
-    // center cap
     ctx.beginPath();
     ctx.arc(centerX, centerY, 32, 0, TWO_PI);
     ctx.fillStyle = '#EAB522';
@@ -440,17 +441,14 @@
     drawFlatPointer(centerX, centerY, radius);
   }
   
-  // CLEAN ARROW – only a triangle pointing downward + a simple rivet (no rectangles)
   function drawFlatPointer(cx, cy, wheelRadius) {
-    // Tip sits just inside the top edge of the wheel, pointing down
     const tipY = cy - wheelRadius + 12;
-    const baseY = tipY - 32;                // higher up, outside the wheel
+    const baseY = tipY - 32;
     const arrowWidth = 40;
     const halfW = arrowWidth / 2;
     const leftX = cx - halfW;
     const rightX = cx + halfW;
     
-    // main downward triangle
     ctx.beginPath();
     ctx.moveTo(leftX, baseY);
     ctx.lineTo(cx, tipY);
@@ -462,7 +460,6 @@
     ctx.lineWidth = 2;
     ctx.stroke();
     
-    // small decorative gold circle (rivet) centered inside the arrow base
     ctx.beginPath();
     ctx.arc(cx, baseY + 8, 5, 0, TWO_PI);
     ctx.fillStyle = '#DDAA33';
@@ -482,13 +479,15 @@
   
   // ---------- BACKEND API ----------
   async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
-  async function saveSpinResult(receiptNumber, prize, customerId = null){ 
+  
+  async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null){ 
     showLoading('Recording your win...'); 
     try{ 
       const fd = new URLSearchParams(); 
       fd.append('action','save'); 
       fd.append('receipt', receiptNumber); 
       fd.append('prize', prize);
+      fd.append('discount', discountValue.toString());   // NEW: send discount value
       if (customerId) fd.append('customer_id', customerId);
       const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
       const res = await resp.json(); 
@@ -500,7 +499,10 @@
       return false;
     } finally{ hideLoading(); } 
   }
+  
   async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
+  
+  // date helpers unchanged ...
   function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
   function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
   function closePage() { window.close(); setTimeout(()=>{ showAlertModal('Thank You', 'The page can now be closed.'); }, 500); }
@@ -557,9 +559,10 @@
         const actualIndex=Math.min(segmentIndex,prizes.length-1);
         const wonPrize=prizes[actualIndex];
         spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
-        saveSpinResult(receiptNumber, wonPrize.label, customerId).then(saved => {
+        // Save with discount value
+        saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
           if (saved) {
-            showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nYour prize has been recorded. Thank you!`).then(() => closePage());
+            showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nDiscount value: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`).then(() => closePage());
           } else {
             showAlertModal('Attention', `You won ${wonPrize.label}, but we could not record it automatically. Please contact the store with your receipt number.`).then(() => closePage());
           }
@@ -571,7 +574,7 @@
   }
   spinBtn.addEventListener('click',spinWheel); drawWheel();
 
-  // BUTTON HANDLERS
+  // BUTTON HANDLERS (check, claim, reprint – unchanged logic)
   document.getElementById('checkButton').addEventListener('click',async()=>{
     const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
     if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
@@ -581,7 +584,7 @@
       let statusLine='';
       if(data.claimed) statusLine=`Claimed (value: RM ${data.value||'N/A'})`;
       else{ const expiry=getExpiryInfo(data.timestamp); if(!expiry.valid) statusLine=`Not claimed – ${expiry.message}`; else if(expiry.expired) statusLine=`Expired on ${expiry.expiryDate.toLocaleDateString()}`; else statusLine=`Valid (expires on ${expiry.expiryDate.toLocaleDateString()})`; }
-      await showAlertModal('Receipt Info',`Receipt: ${receiptNumber}\nPrize: ${data.prize}\nStatus: ${statusLine}`);
+      await showAlertModal('Receipt Info',`Receipt: ${receiptNumber}\nPrize: ${data.prize}\nDiscount Value: RM ${data.discount_value || 'N/A'}\nStatus: ${statusLine}`);
     }catch(error){ await showAlertModal('Error','Error checking receipt.'); console.error(error); }
   });
   document.getElementById('claimButton').addEventListener('click',async()=>{
@@ -592,7 +595,8 @@
       if(!data){
         const prize=await showSelectModal('Select prize won',uniquePrizes); if(prize===null) return;
         const value=await showInputModal('Enter NEW receipt value (RM)','RM amount'); if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
-        const saved=await saveSpinResult(receiptNumber,prize, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
+        // For manual entry, discount value is 0 by default (or ask user)
+        const saved=await saveSpinResult(receiptNumber,prize,0, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
         const claimed=await claimReceipt(receiptNumber,value);
         if(claimed) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
         else await showAlertModal('Error','Claim failed after saving record.');
