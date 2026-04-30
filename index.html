@@ -562,7 +562,7 @@
         // Save with discount value
         saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
           if (saved) {
-            showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nDiscount value: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`).then(() => closePage());
+            showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nWORTH: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`).then(() => closePage());
           } else {
             showAlertModal('Attention', `You won ${wonPrize.label}, but we could not record it automatically. Please contact the store with your receipt number.`).then(() => closePage());
           }
