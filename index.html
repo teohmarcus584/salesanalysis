@@ -309,9 +309,9 @@
   // New prize list with discount values (matching the requested list)
   const prizes = [
     { label: "FREE LA PREVE 100ML RM 210", weight: 0, discountValue: 210 },
-    { label: "15ML PERFUME BUY 1 FREE 1", weight: 2, discountValue: 75 },
+    { label: "15ML PERFUME BUY 1 FREE 1", weight: 3, discountValue: 75 },
     { label: "FREE 100ML SIG EDP RM 180", weight: 0, discountValue: 180 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
     { label: "FREE 200ML REED DIFFUSER RM 89", weight: 0, discountValue: 89 },
     { label: "100ML SIG EDP BUY 1 FREE 1", weight: 3, discountValue: 180 },
     { label: "FREE 500ML BODY WASH RM 67", weight: 0, discountValue: 67 },
@@ -324,10 +324,10 @@
     { label: "100ML SIG EDP BUY 2 FREE 2", weight: 3, discountValue: 360 },
     { label: "FREE HUMIDIFIER MACHINE RM 249", weight: 0, discountValue: 249 },
     // Additional duplicates of CAR AROMATIC to meet weight distribution (weight 5 total)
-    { label: "FREE CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 5, discountValue: 38 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 5, discountValue: 38 }
+    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 }
   ];
 
   const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
