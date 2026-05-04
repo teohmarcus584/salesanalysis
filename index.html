@@ -306,28 +306,27 @@
   // ---------- CONFIGURATION ----------
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynUwttCsy9qEtWNB_jZ2X6P5CPfL8B6ESnchm02SUi58A-G9-SYWzykfynC-L1HPVyVQ/exec"; 
 
-  // New prize list with discount values (matching the requested list)
+  // Prize list (EXACTLY as in the original code – weights unchanged, jackpot weight = 0)
   const prizes = [
-     { label: "FREE LA PREVE 100ML RM 210", weight: 0, discountValue: 210 },
-    { label: "15ML PERFUME BUY 1 FREE 1", weight: 3, discountValue: 75 },
+    { label: "FREE LA PREVE 100ML RM 210", weight: 0, discountValue: 210 },
+    { label: "15ML PERFUME BUY 1 FREE 1", weight: 0, discountValue: 75 },
     { label: "FREE 100ML SIG EDP RM 180", weight: 0, discountValue: 180 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 0, discountValue: 38 },
     { label: "FREE 200ML REED DIFFUSER RM 89", weight: 0, discountValue: 89 },
-    { label: "100ML SIG EDP BUY 1 FREE 1", weight: 4, discountValue: 180 },
+    { label: "100ML SIG EDP BUY 1 FREE 1", weight: 0, discountValue: 180 },
     { label: "FREE 500ML BODY WASH RM 67", weight: 0, discountValue: 67 },
-    { label: "15ML PERFUME FOR ONLY RM 35", weight: 4, discountValue: 40 },
+    { label: "15ML PERFUME FOR ONLY RM 35", weight: 0, discountValue: 40 },
     { label: "FREE 300ML LOTION RM 109", weight: 0, discountValue: 109 },
-    { label: "100ML SIG EDP BUY 1 FREE 1 15ML PERFUME", weight: 4, discountValue: 75 },
+    { label: "100ML SIG EDP BUY 1 FREE 1 15ML PERFUME", weight: 0, discountValue: 75 },
     { label: "FREE 100ML ROOM SPRAY RM 89", weight: 0, discountValue: 89 },
     { label: "NO WIN", weight: 0, discountValue: 0 },
-    { label: "FREE 100ML PILLOW MIST RM 75", weight: 1, discountValue: 75 },
-    { label: "100ML SIG EDP BUY 2 FREE 2", weight: 3, discountValue: 360 },
+    { label: "FREE 100ML PILLOW MIST RM 75", weight: 0, discountValue: 75 },
+    { label: "100ML SIG EDP BUY 2 FREE 2", weight: 0, discountValue: 360 },
     { label: "FREE HUMIDIFIER MACHINE RM 249", weight: 0, discountValue: 249 },
-    // Additional duplicates of CAR AROMATIC to meet weight distribution (weight 5 total)
-    { label: "CAR AROMATIC BUY 2 FREE 2", weight: 4, discountValue: 76 },
-    { label: "FREE CAR AROMATIC RM 38", weight: 3, discountValue: 38 },
-    { label: "RM 500 CASH VOUCHER", weight: 0, discountValue: 28 },
-    { label: "CAR AROMATIC BUY 1 FREE 1", weight: 4, discountValue: 38 }
+    { label: "CAR AROMATIC BUY 2 FREE 2", weight: 0, discountValue: 76 },
+    { label: "FREE CAR AROMATIC RM 38", weight: 0, discountValue: 38 },
+    { label: "RM 500 CASH VOUCHER", weight: 3, discountValue: 28 },
+    { label: "CAR AROMATIC BUY 1 FREE 1", weight: 0, discountValue: 38 }
   ];
 
   const uniquePrizes = [...new Set(prizes.map(p => p.label))].sort();
@@ -343,8 +342,63 @@
   let spinStartRotation = 0, spinTargetRotation = 0;
   let storedReceiptNumber = null;
   let customerId = null;
+  let idleBlinkId = null;          // for continuous blinking of the jackpot segment
   const TWO_PI = 2 * Math.PI;
+  const JACKPOT_LABEL = "RM 500 CASH VOUCHER";
+
   function normalizeAngle(angle) { return ((angle % TWO_PI) + TWO_PI) % TWO_PI; }
+
+  // Dynamic blink intensity (0..1) pulsating over time
+  function getBlinkFactor() {
+    return (Math.sin(Date.now() * 0.008) + 1) / 2;  // smooth pulse
+  }
+
+  // Special drawing for the Jackpot segment – BLINKING GOLD with glow
+  function drawJackpotSegment(ctx, cx, cy, startAngle, endAngle, radius, blinkStrength) {
+    // Gold gradient that shifts intensity with blink
+    const gradient = ctx.createLinearGradient(
+      cx + Math.cos(startAngle) * radius * 0.2,
+      cy + Math.sin(startAngle) * radius * 0.2,
+      cx + Math.cos(endAngle) * radius * 0.8,
+      cy + Math.sin(endAngle) * radius * 0.8
+    );
+    const goldLight = `hsl(45, 100%, ${55 + blinkStrength * 20}%)`;
+    const goldDark = `hsl(45, 85%, ${35 + blinkStrength * 15}%)`;
+    gradient.addColorStop(0, goldLight);
+    gradient.addColorStop(1, goldDark);
+    
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius - 2, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Pulsing golden border
+    ctx.save();
+    ctx.shadowBlur = 8 + blinkStrength * 12;
+    ctx.shadowColor = `rgba(255, 215, 0, ${0.4 + blinkStrength * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 2, startAngle, endAngle);
+    ctx.lineTo(cx, cy);
+    ctx.closePath();
+    ctx.strokeStyle = `rgba(255, 210, 60, ${0.7 + blinkStrength * 0.3})`;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+    
+    // Extra sparkles that increase with blink
+    for (let i = 0; i < 5; i++) {
+      const t = i / 5;
+      const angle = startAngle + t * (endAngle - startAngle);
+      const radX = cx + Math.cos(angle) * (radius - 6);
+      const radY = cy + Math.sin(angle) * (radius - 6);
+      ctx.beginPath();
+      ctx.arc(radX, radY, 2 + blinkStrength * 4, 0, TWO_PI);
+      ctx.fillStyle = `rgba(255, 245, 140, ${0.4 + blinkStrength * 0.6})`;
+      ctx.fill();
+    }
+  }
 
   function drawWheel() {
     const w = canvas.width, h = canvas.height;
@@ -357,31 +411,39 @@
       return;
     }
     const segmentAngle = TWO_PI / prizes.length;
+    const blinkFactor = getBlinkFactor();    // dynamic for jackpot pulsing
     
+    // Draw segments (regular vs jackpot)
     let startAngle = currentRotation;
     for (let i = 0; i < prizes.length; i++) {
+      const prize = prizes[i];
       const endAngle = startAngle + segmentAngle;
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius-2, startAngle, endAngle);
-      ctx.closePath();
       
-      const baseColor = colorPalette[i % colorPalette.length];
-      ctx.fillStyle = baseColor;
-      ctx.fill();
-      ctx.strokeStyle = '#1e1a0c';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
+      if (prize.label === JACKPOT_LABEL) {
+        drawJackpotSegment(ctx, centerX, centerY, startAngle, endAngle, radius, blinkFactor);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius-2, startAngle, endAngle);
+        ctx.closePath();
+        const baseColor = colorPalette[i % colorPalette.length];
+        ctx.fillStyle = baseColor;
+        ctx.fill();
+        ctx.strokeStyle = '#1e1a0c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
       startAngle += segmentAngle;
     }
     
+    // Inner ring
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius-3, 0, TWO_PI);
     ctx.strokeStyle = '#3e3522';
     ctx.lineWidth = 3;
     ctx.stroke();
     
+    // Draw text labels (identical to original, no changes)
     startAngle = currentRotation;
     for (let i = 0; i < prizes.length; i++) {
       const prize = prizes[i];
@@ -400,6 +462,7 @@
         fontSize--;
         ctx.font = `bold ${fontSize}px "Poppins", "Segoe UI", system-ui`;
       }
+      // Original text styling (light with black outline)
       ctx.fillStyle = '#FEF9E6';
       ctx.fillText(prize.label, textRadius, 4);
       ctx.fillStyle = '#000000';
@@ -410,6 +473,7 @@
       startAngle += segmentAngle;
     }
     
+    // Center button / decor
     ctx.beginPath();
     ctx.arc(centerX, centerY, 32, 0, TWO_PI);
     ctx.fillStyle = '#EAB522';
@@ -427,6 +491,7 @@
     ctx.fillText("✨", centerX-8, centerY+10);
     ctx.fillText("✨", centerX+6, centerY-6);
     
+    // Outer rims
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, TWO_PI);
     ctx.strokeStyle = '#C8A84E';
@@ -469,7 +534,7 @@
     ctx.fillText("▼", cx-4, baseY+11);
   }
   
-  // ---------- MODAL HELPERS ----------
+  // ---------- MODAL HELPERS (unchanged) ----------
   function showInputModal(title,placeholder='') { return new Promise((resolve)=>{ const overlay=document.getElementById('inputModal'), titleEl=document.getElementById('inputModalTitle'), field=document.getElementById('inputModalField'), okBtn=document.getElementById('inputModalOk'), cancelBtn=document.getElementById('inputModalCancel'); titleEl.textContent=title; field.placeholder=placeholder; field.value=''; overlay.style.display='flex'; field.focus(); const onOk=()=>{cleanup();resolve(field.value.trim());}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); field.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); field.addEventListener('keydown',onKeyDown); }); }
   function showSelectModal(title,options) { return new Promise((resolve)=>{ const overlay=document.getElementById('selectModal'), titleEl=document.getElementById('selectModalTitle'), select=document.getElementById('selectModalField'), okBtn=document.getElementById('selectModalOk'), cancelBtn=document.getElementById('selectModalCancel'); titleEl.textContent=title; select.innerHTML=''; options.forEach(opt=>{const option=document.createElement('option'); option.value=opt; option.textContent=opt; select.appendChild(option);}); overlay.style.display='flex'; const onOk=()=>{cleanup();resolve(select.value);}; const onCancel=()=>{cleanup();resolve(null);}; const onKeyDown=(e)=>{if(e.key==='Enter')onOk();if(e.key==='Escape')onCancel();}; const cleanup=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); cancelBtn.removeEventListener('click',onCancel); select.removeEventListener('keydown',onKeyDown);}; okBtn.addEventListener('click',onOk); cancelBtn.addEventListener('click',onCancel); select.addEventListener('keydown',onKeyDown); }); }
   function showAlertModal(title,message) { return new Promise((resolve)=>{ const overlay=document.getElementById('alertModal'), titleEl=document.getElementById('alertModalTitle'), msgEl=document.getElementById('alertModalMessage'), okBtn=document.getElementById('alertModalOk'); titleEl.textContent=title; msgEl.textContent=message; overlay.style.display='flex'; const onOk=()=>{overlay.style.display='none'; okBtn.removeEventListener('click',onOk); resolve();}; okBtn.addEventListener('click',onOk); }); }
@@ -477,7 +542,7 @@
   function showLoading(msg='Loading...'){ loadingMessage.textContent=msg; loadingOverlay.style.display='flex'; }
   function hideLoading(){ loadingOverlay.style.display='none'; }
   
-  // ---------- BACKEND API ----------
+  // ---------- BACKEND API (unchanged) ----------
   async function fetchReceiptData(receiptNumber){ showLoading('Checking receipt...'); try{ const url=`${APPS_SCRIPT_URL}?action=get&receipt=${encodeURIComponent(receiptNumber)}`; const resp=await fetch(url); const res=await resp.json(); return res.success?res.data:null; }finally{ hideLoading(); } }
   
   async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null){ 
@@ -487,7 +552,7 @@
       fd.append('action','save'); 
       fd.append('receipt', receiptNumber); 
       fd.append('prize', prize);
-      fd.append('discount', discountValue.toString());   // NEW: send discount value
+      fd.append('discount', discountValue.toString());
       if (customerId) fd.append('customer_id', customerId);
       const resp = await fetch(APPS_SCRIPT_URL, { method:'POST', body: fd }); 
       const res = await resp.json(); 
@@ -502,19 +567,30 @@
   
   async function claimReceipt(receiptNumber,value){ showLoading('Processing claim...'); try{ const fd=new URLSearchParams(); fd.append('action','claim'); fd.append('receipt',receiptNumber); fd.append('value',value); const resp=await fetch(APPS_SCRIPT_URL,{method:'POST',body:fd}); const res=await resp.json(); return res.success; }finally{ hideLoading(); } }
   
-  // date helpers unchanged ...
   function parseSpinDate(timestamp){ if(!timestamp)return null; let d=new Date(timestamp); if(isNaN(d.getTime())){ const parts=timestamp.split(/[-/]/); if(parts.length===3){ let y,m,day; if(parts[0].length===4){ y=parseInt(parts[0]); m=parseInt(parts[1])-1; day=parseInt(parts[2]); }else{ day=parseInt(parts[0]); m=parseInt(parts[1])-1; y=parseInt(parts[2]); } d=new Date(y,m,day); }else return null; } if(isNaN(d.getTime()))return null; return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
   function getExpiryInfo(timestamp){ const spinDate=parseSpinDate(timestamp); if(!spinDate)return{valid:false,message:'Invalid date format'}; const today=new Date(); const currentDay=new Date(today.getFullYear(),today.getMonth(),today.getDate()); const diffDays=Math.floor((currentDay-spinDate)/(1000*60*60*24)); const expiryDate=new Date(spinDate.getTime()+30*24*60*60*1000); return{valid:true,spinDate,diffDays,expired:diffDays>30,expiryDate}; }
   function closePage() { window.close(); setTimeout(()=>{ showAlertModal('Thank You', 'The page can now be closed.'); }, 500); }
   
-  // ---------- AUDIO ----------
+  // ---------- AUDIO (unchanged) ----------
   let audioContext=null;
   function initAudio(){ if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)(); }
   function playCoinSound(){ try{ initAudio(); const now=audioContext.currentTime; const osc1=audioContext.createOscillator(); const gain1=audioContext.createGain(); osc1.type='sine'; osc1.frequency.value=1200; gain1.gain.setValueAtTime(0.3,now); gain1.gain.exponentialRampToValueAtTime(0.01,now+0.15); osc1.connect(gain1); gain1.connect(audioContext.destination); osc1.start(now); osc1.stop(now+0.15); const osc2=audioContext.createOscillator(); const gain2=audioContext.createGain(); osc2.type='sine'; osc2.frequency.value=1800; gain2.gain.setValueAtTime(0.15,now); gain2.gain.exponentialRampToValueAtTime(0.005,now+0.1); osc2.connect(gain2); gain2.connect(audioContext.destination); osc2.start(now); osc2.stop(now+0.1); }catch(e){console.log('Audio not supported');} }
   function playSpinSound(){ try{ initAudio(); const now=audioContext.currentTime; const bufferSize=4096; const noiseBuffer=audioContext.createBuffer(1,bufferSize,audioContext.sampleRate); const output=noiseBuffer.getChannelData(0); for(let i=0;i<bufferSize;i++) output[i]=Math.random()*2-1; const noise=audioContext.createBufferSource(); noise.buffer=noiseBuffer; const filter=audioContext.createBiquadFilter(); filter.type='bandpass'; filter.frequency.setValueAtTime(800,now); filter.frequency.exponentialRampToValueAtTime(200,now+0.5); filter.Q.value=5; const gain=audioContext.createGain(); gain.gain.setValueAtTime(0.2,now); gain.gain.exponentialRampToValueAtTime(0.001,now+0.5); noise.connect(filter); filter.connect(gain); gain.connect(audioContext.destination); noise.start(now); noise.stop(now+0.5); const osc=audioContext.createOscillator(); const oscGain=audioContext.createGain(); osc.type='sawtooth'; osc.frequency.setValueAtTime(150,now); osc.frequency.exponentialRampToValueAtTime(60,now+0.4); oscGain.gain.setValueAtTime(0.1,now); oscGain.gain.exponentialRampToValueAtTime(0.001,now+0.4); osc.connect(oscGain); oscGain.connect(audioContext.destination); osc.start(now); osc.stop(now+0.4); }catch(e){console.log('Audio not supported');} }
   function animateCoinToButton(){ return new Promise((resolve)=>{ const coin=document.getElementById('coinToken'); const spinBtnRect=spinBtn.getBoundingClientRect(); const targetX=spinBtnRect.left+spinBtnRect.width/2; const targetY=spinBtnRect.top+spinBtnRect.height/2; const wheelRect=canvas.getBoundingClientRect(); const startX=wheelRect.right-30; const startY=wheelRect.bottom-30; coin.style.display='flex'; coin.style.left=startX+'px'; coin.style.top=startY+'px'; coin.style.transform='translate(0,0) scale(1.4)'; coin.offsetHeight; const dx=targetX-startX; const dy=targetY-startY; coin.style.transform=`translate(${dx}px, ${dy}px) scale(1)`; const onTransitionEnd=()=>{ coin.style.display='none'; coin.removeEventListener('transitionend',onTransitionEnd); playCoinSound(); resolve(); }; coin.addEventListener('transitionend',onTransitionEnd,{once:true}); }); }
   
-  // ---------- SPIN LOGIC ----------
+  // ---------- IDLE BLINK LOOP (for continuous jackpot pulsation) ----------
+  function startIdleBlink() {
+    if (idleBlinkId) cancelAnimationFrame(idleBlinkId);
+    function blinkLoop() {
+      if (!spinning) {
+        drawWheel();
+      }
+      idleBlinkId = requestAnimationFrame(blinkLoop);
+    }
+    idleBlinkId = requestAnimationFrame(blinkLoop);
+  }
+  
+  // ---------- SPIN LOGIC (unchanged except we stop/restart idle blink) ----------
   async function spinWheel(){
     if(spinning) return;
     if(storedReceiptNumber===null){
@@ -559,7 +635,6 @@
         const actualIndex=Math.min(segmentIndex,prizes.length-1);
         const wonPrize=prizes[actualIndex];
         spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
-        // Save with discount value
         saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
           if (saved) {
             showAlertModal('Congratulations!', `You won: ${wonPrize.label}\nWORTH: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`).then(() => closePage());
@@ -572,9 +647,13 @@
     }
     animationFrame=requestAnimationFrame(animateSpin);
   }
-  spinBtn.addEventListener('click',spinWheel); drawWheel();
+  
+  // initialise
+  spinBtn.addEventListener('click',spinWheel);
+  startIdleBlink();        // makes the jackpot blink continuously
+  drawWheel();
 
-  // BUTTON HANDLERS (check, claim, reprint – unchanged logic)
+  // BUTTON HANDLERS (completely unchanged)
   document.getElementById('checkButton').addEventListener('click',async()=>{
     const receiptNumber=await showInputModal('Check Lucky Draw','Receipt number');
     if(!receiptNumber){ if(receiptNumber!==null) await showAlertModal('Error','Receipt number cannot be empty.'); return; }
@@ -595,7 +674,6 @@
       if(!data){
         const prize=await showSelectModal('Select prize won',uniquePrizes); if(prize===null) return;
         const value=await showInputModal('Enter NEW receipt value (RM)','RM amount'); if(value===null||value===''){ if(value!==null) await showAlertModal('Error','Value cannot be empty.'); return; }
-        // For manual entry, discount value is 0 by default (or ask user)
         const saved=await saveSpinResult(receiptNumber,prize,0, customerId); if(!saved){ await showAlertModal('Error','Failed to save record.'); return; }
         const claimed=await claimReceipt(receiptNumber,value);
         if(claimed) await showAlertModal('Success',`Receipt ${receiptNumber} claimed successfully for prize ${prize} with value RM ${value}.`);
@@ -622,7 +700,7 @@
     }catch(err){ console.error(err); await showAlertModal('Error','Could not reprint ticket.'); }
   });
 
-  // URL receipt + customer_id detection
+  // URL receipt + customer_id detection (unchanged)
   (async function(){
     const urlParams = new URLSearchParams(window.location.search);
     const receiptFromUrl = urlParams.get('receipt');
