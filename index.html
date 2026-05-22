@@ -704,7 +704,7 @@
   (async function(){
     const urlParams = new URLSearchParams(window.location.search);
     const receiptFromUrl = urlParams.get('receipt');
-    const customerIdFromUrl = urlParams.get('customer_id');
+   const customerIdFromUrl = urlParams.get('customer');
     if (customerIdFromUrl) { customerId = customerIdFromUrl; console.log('Customer ID loaded:', customerId); }
     if(receiptFromUrl){
       storedReceiptNumber=receiptFromUrl;
