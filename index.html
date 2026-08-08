@@ -372,41 +372,71 @@
       }
     }
 
-    async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
-      showLoading('Recording your win...');
-      try {
-        // Check if receipt already exists
-        const existing = await fetchReceiptData(receiptNumber);
-        if (existing) {
-          await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}`);
-          return false;
-        }
-
-        const { data, error } = await supabaseClient
-          .from('lucky_draw_prizes')
-          .insert([{
-            receipt: receiptNumber,
-            prize_label: prize,
-            discount_value: discountValue,
-            store: null,
-            employee_id: null,
-            employee_name: null,
-            claimed: false,
-            claimed_at: null,
-            created_at: new Date().toISOString()
-          }])
-          .select();
-
-        if (error) throw error;
-        return true;
-      } catch (err) {
-        console.error('Save error:', err);
-        await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
-        return false;
-      } finally {
-        hideLoading();
-      }
+   // In your Lucky Draw page, after the customer spins and wins:
+async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
+  showLoading('Recording your win...');
+  try {
+    // ✅ Check if receipt already has a lucky draw entry
+    const { data: existing, error: checkError } = await supabase
+      .from('lucky_draw_prizes')
+      .select('id')
+      .eq('receipt', receiptNumber)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking existing:', checkError);
     }
+    
+    // ✅ If already exists, don't create duplicate
+    if (existing) {
+      console.log('Lucky draw entry already exists for this receipt');
+      // Show the prize that was already saved
+      const { data: prizeData } = await supabase
+        .from('lucky_draw_prizes')
+        .select('*')
+        .eq('receipt', receiptNumber)
+        .single();
+      
+      if (prizeData) {
+        const displayPrize = /^FREE\b/i.test(prizeData.prize_label) 
+          ? prizeData.prize_label + " WITH ANY PURCHASE" 
+          : prizeData.prize_label;
+        
+        const congratsMsg = `You won: ${displayPrize}\nWORTH: RM ${prizeData.discount_value}\nYour prize has been recorded. Thank you!`;
+        showAlertModal('Congratulations!', congratsMsg).then(() => closePage());
+      }
+      return true;
+    }
+    
+    // ✅ Only save if it doesn't exist yet
+    const { data, error } = await supabase
+      .from('lucky_draw_prizes')
+      .insert([{
+        receipt: receiptNumber,
+        prize_label: prize,
+        discount_value: discountValue,
+        store: null,
+        employee_id: null,
+        employee_name: null,
+        claimed: false,
+        claimed_at: null,
+        created_at: new Date().toISOString()
+      }])
+      .select();
+    
+    if (error) throw error;
+    
+    console.log('✅ Lucky draw entry created:', data);
+    return true;
+    
+  } catch (err) {
+    console.error('Save error:', err);
+    await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
 
     async function claimReceipt(receiptNumber, value) {
       showLoading('Processing claim...');
