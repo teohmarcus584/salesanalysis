@@ -370,45 +370,45 @@
   }
 
   async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
-    showLoading('Recording your win...');
-    try {
-      // Check if receipt already exists
-      const existing = await fetchReceiptData(receiptNumber);
-      if (existing) {
-        const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
-        await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
-        return false;
-      }
-
-      // ✅ Insert WITHOUT employee_id and employee_name (columns don't exist in your table)
-      const { data, error } = await supabaseClient
-        .from('lucky_draw_prizes')
-        .insert([{
-          receipt: receiptNumber,
-          prize_label: prize,
-          discount_value: discountValue,
-          store: null,
-          claimed: false,
-          claimed_at: null,
-          created_at: new Date().toISOString()
-        }])
-        .select();
-
-      if (error) {
-        console.error('❌ Save error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Lucky draw entry created:', data);
-      return true;
-    } catch (err) {
-      console.error('Save error:', err);
-      await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
+  showLoading('Recording your win...');
+  try {
+    // Check if receipt already exists
+    const existing = await fetchReceiptData(receiptNumber);
+    if (existing) {
+      const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
+      await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
       return false;
-    } finally {
-      hideLoading();
     }
+
+    // ✅ Insert with a default store value (or null if allowed)
+    const { data, error } = await supabaseClient
+      .from('lucky_draw_prizes')
+      .insert([{
+        receipt: receiptNumber,
+        prize_label: prize,
+        discount_value: discountValue,
+        store: 'queens',  // ✅ Default store value
+        claimed: false,
+        claimed_at: null,
+        created_at: new Date().toISOString()
+      }])
+      .select();
+
+    if (error) {
+      console.error('❌ Save error:', error);
+      throw error;
+    }
+    
+    console.log('✅ Lucky draw entry created:', data);
+    return true;
+  } catch (err) {
+    console.error('Save error:', err);
+    await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
+    return false;
+  } finally {
+    hideLoading();
   }
+}
 
   async function claimReceipt(receiptNumber, value) {
     showLoading('Processing claim...');
