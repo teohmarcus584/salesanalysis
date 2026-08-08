@@ -380,6 +380,7 @@
         return false;
       }
 
+      // ✅ Insert WITHOUT employee_id and employee_name (columns don't exist in your table)
       const { data, error } = await supabaseClient
         .from('lucky_draw_prizes')
         .insert([{
@@ -387,8 +388,6 @@
           prize_label: prize,
           discount_value: discountValue,
           store: null,
-          employee_id: null,
-          employee_name: null,
           claimed: false,
           claimed_at: null,
           created_at: new Date().toISOString()
