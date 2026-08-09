@@ -350,6 +350,7 @@
   let idleBlinkId = null;
   const TWO_PI = 2 * Math.PI;
   const JACKPOT_LABEL = "RM 500 CASH VOUCHER";
+  const CASH20_LABEL = "RM 20 CASH VOUCHER";
 
   // ==================== SUPABASE FUNCTIONS ====================
 
@@ -372,7 +373,6 @@
   async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
   showLoading('Recording your win...');
   try {
-    // Check if receipt already exists
     const existing = await fetchReceiptData(receiptNumber);
     if (existing) {
       const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
@@ -380,14 +380,13 @@
       return false;
     }
 
-    // ✅ Insert with a default store value (or null if allowed)
     const { data, error } = await supabaseClient
       .from('lucky_draw_prizes')
       .insert([{
         receipt: receiptNumber,
         prize_label: prize,
         discount_value: discountValue,
-        store: 'queens',  // ✅ Default store value
+        store: 'queens',
         claimed: false,
         claimed_at: null,
         created_at: new Date().toISOString()
@@ -460,17 +459,17 @@
     return (Math.sin(Date.now() * 0.008) + 1) / 2;
   }
 
-  function drawJackpotSegment(ctx, cx, cy, startAngle, endAngle, radius, blinkStrength) {
+  function drawGlowingSegment(ctx, cx, cy, startAngle, endAngle, radius, blinkStrength, color1, color2, label) {
     const gradient = ctx.createLinearGradient(
       cx + Math.cos(startAngle) * radius * 0.2,
       cy + Math.sin(startAngle) * radius * 0.2,
       cx + Math.cos(endAngle) * radius * 0.8,
       cy + Math.sin(endAngle) * radius * 0.8
     );
-    const goldLight = `hsl(45, 100%, ${55 + blinkStrength * 20}%)`;
-    const goldDark = `hsl(45, 85%, ${35 + blinkStrength * 15}%)`;
-    gradient.addColorStop(0, goldLight);
-    gradient.addColorStop(1, goldDark);
+    const light = `hsl(${color1}, 100%, ${55 + blinkStrength * 20}%)`;
+    const dark = `hsl(${color2}, 85%, ${35 + blinkStrength * 15}%)`;
+    gradient.addColorStop(0, light);
+    gradient.addColorStop(1, dark);
     
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -491,6 +490,7 @@
     ctx.stroke();
     ctx.restore();
     
+    // sparkles
     for (let i = 0; i < 5; i++) {
       const t = i / 5;
       const angle = startAngle + t * (endAngle - startAngle);
@@ -522,7 +522,9 @@
       const endAngle = startAngle + segmentAngle;
       
       if (prize.label === JACKPOT_LABEL) {
-        drawJackpotSegment(ctx, centerX, centerY, startAngle, endAngle, radius, blinkFactor);
+        drawGlowingSegment(ctx, centerX, centerY, startAngle, endAngle, radius, blinkFactor, 45, 45, prize.label);
+      } else if (prize.label === CASH20_LABEL) {
+        drawGlowingSegment(ctx, centerX, centerY, startAngle, endAngle, radius, blinkFactor, 45, 45, prize.label);
       } else {
         ctx.beginPath();
         ctx.moveTo(centerX, centerY);
@@ -710,14 +712,12 @@
         const wonPrize=prizes[actualIndex];
         spinning=false; spinBtn.disabled=false; resultDiv.innerText=`🎉 you won: ${wonPrize.label}`;
         
-        // Only append "WITH ANY PURCHASE" if label starts with "FREE" (case-insensitive)
         const startsWithFree = /^FREE\b/i.test(wonPrize.label);
         let displayPrize = wonPrize.label;
         if (startsWithFree) {
           displayPrize += " WITH ANY PURCHASE";
         }
         
-        // ✅ Save the spin result to Supabase
         saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
           if (saved) {
             const congratsMsg = `You won: ${displayPrize}\nWORTH: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`;
@@ -782,7 +782,6 @@
     try {
       const data = await fetchReceiptData(receiptNumber);
       if (!data) {
-        // Allow manual claim if receipt not found
         const prize = await showSelectModal('Select prize won', uniquePrizes);
         if (prize === null) return;
         const value = await showInputModal('Enter receipt value (RM)', 'RM amount');
