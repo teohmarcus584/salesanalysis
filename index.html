@@ -346,8 +346,7 @@
   const spinDuration = 13000;
   let spinStartRotation = 0, spinTargetRotation = 0;
   let storedReceiptNumber = null;
-  let customerPhone = null;        // ✅ Store phone number
-  let customerId = null;          // Keep for backward compatibility
+  let customerId = null;
   let idleBlinkId = null;
   const TWO_PI = 2 * Math.PI;
   const JACKPOT_LABEL = "RM 500 CASH VOUCHER";
@@ -371,19 +370,19 @@
     }
   }
 
-  // ✅ FIXED: Save spin result with phone number
-  async function saveSpinResult(receiptNumber, prize, discountValue, customerPhoneParam = null) {
-    showLoading('Recording your win...');
-    try {
-      const existing = await fetchReceiptData(receiptNumber);
-      if (existing) {
-        const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
-        await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
-        return false;
-      }
+  async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
+  showLoading('Recording your win...');
+  try {
+    const existing = await fetchReceiptData(receiptNumber);
+    if (existing) {
+      const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
+      await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
+      return false;
+    }
 
-      // ✅ Build insert data with customer_phone
-      const insertData = {
+    const { data, error } = await supabaseClient
+      .from('lucky_draw_prizes')
+      .insert([{
         receipt: receiptNumber,
         prize_label: prize,
         discount_value: discountValue,
@@ -391,43 +390,25 @@
         claimed: false,
         claimed_at: null,
         created_at: new Date().toISOString()
-      };
+      }])
+      .select();
 
-      // ✅ Add customer_phone if provided
-      const phoneToUse = customerPhoneParam || customerPhone;
-      if (phoneToUse) {
-        insertData.customer_phone = phoneToUse;
-        console.log('📱 Saving with customer phone:', phoneToUse);
-      }
-      
-      // ✅ Also add customer_id if available (backward compatibility)
-      if (customerId) {
-        insertData.customer_id = customerId;
-        console.log('🆔 Saving with customer ID:', customerId);
-      }
-
-      const { data, error } = await supabaseClient
-        .from('lucky_draw_prizes')
-        .insert([insertData])
-        .select();
-
-      if (error) {
-        console.error('❌ Save error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Lucky draw entry created:', data);
-      return true;
-    } catch (err) {
-      console.error('Save error:', err);
-      await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
-      return false;
-    } finally {
-      hideLoading();
+    if (error) {
+      console.error('❌ Save error:', error);
+      throw error;
     }
+    
+    console.log('✅ Lucky draw entry created:', data);
+    return true;
+  } catch (err) {
+    console.error('Save error:', err);
+    await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
+    return false;
+  } finally {
+    hideLoading();
   }
+}
 
-  // ✅ FIXED: Claim receipt with phone support
   async function claimReceipt(receiptNumber, value) {
     showLoading('Processing claim...');
     try {
@@ -737,8 +718,7 @@
           displayPrize += " WITH ANY PURCHASE";
         }
         
-        // ✅ Pass phone number to saveSpinResult
-        saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerPhone).then(saved => {
+        saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
           if (saved) {
             const congratsMsg = `You won: ${displayPrize}\nWORTH: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`;
             showAlertModal('Congratulations!', congratsMsg).then(() => closePage());
@@ -809,8 +789,7 @@
           if (value !== null) await showAlertModal('Error', 'Value cannot be empty.');
           return;
         }
-        // ✅ Pass phone number to saveSpinResult
-        const saved = await saveSpinResult(receiptNumber, prize, parseFloat(value) || 0, customerPhone);
+        const saved = await saveSpinResult(receiptNumber, prize, parseFloat(value) || 0, customerId);
         if (!saved) {
           await showAlertModal('Error', 'Failed to save record.');
           return;
@@ -872,23 +851,16 @@
     }
   });
 
-  // ✅ FIXED: URL receipt + phone number detection
+  // URL receipt + customer_id detection
   (async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const receiptFromUrl = urlParams.get('receipt');
-    const customerPhoneFromUrl = urlParams.get('phone');  // ✅ Read phone from URL
-    const customerIdFromUrl = urlParams.get('customer');  // Keep for backward compatibility
-    
-    // ✅ Store both phone and ID
-    if (customerPhoneFromUrl) { 
-      customerPhone = customerPhoneFromUrl; 
-      console.log('📱 Customer phone loaded:', customerPhone); 
-    }
+	  const customerPhoneFromUrl = urlParams.get('phone');
+    const customerIdFromUrl = urlParams.get('customer');
     if (customerIdFromUrl) { 
       customerId = customerIdFromUrl; 
-      console.log('🆔 Customer ID loaded:', customerId); 
+      console.log('Customer ID loaded:', customerId); 
     }
-    
     if (receiptFromUrl) {
       storedReceiptNumber = receiptFromUrl;
       try {
