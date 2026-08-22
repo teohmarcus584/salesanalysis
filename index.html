@@ -346,8 +346,8 @@
   const spinDuration = 13000;
   let spinStartRotation = 0, spinTargetRotation = 0;
   let storedReceiptNumber = null;
-  let customerPhone = null;
-  let customerId = null;
+  let customerPhone = null;        // ✅ Global customer phone variable
+  let customerId = null;          // Keep for backward compatibility
   let idleBlinkId = null;
   const TWO_PI = 2 * Math.PI;
   const JACKPOT_LABEL = "RM 500 CASH VOUCHER";
@@ -371,61 +371,61 @@
     }
   }
 
-  // In Lucky Draw page
-async function saveSpinResult(receiptNumber, prize, discountValue, customerPhoneParam = null) {
-  showLoading('Recording your win...');
-  try {
-    const existing = await fetchReceiptData(receiptNumber);
-    if (existing) {
-      const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
-      await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
+  // ✅ FIXED: Save spin result with phone number
+  async function saveSpinResult(receiptNumber, prize, discountValue, customerPhoneParam = null) {
+    showLoading('Recording your win...');
+    try {
+      const existing = await fetchReceiptData(receiptNumber);
+      if (existing) {
+        const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
+        await showAlertModal('Already Used', `Receipt ${receiptNumber} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
+        return false;
+      }
+
+      // ✅ Build insert data with customer_phone
+      const insertData = {
+        receipt: receiptNumber,
+        prize_label: prize,
+        discount_value: discountValue,
+        store: 'queens',
+        claimed: false,
+        claimed_at: null,
+        created_at: new Date().toISOString()
+      };
+
+      // ✅ Add customer_phone if provided
+      const phoneToUse = customerPhoneParam || customerPhone;
+      if (phoneToUse) {
+        insertData.customer_phone = phoneToUse;
+        console.log('📱 Saving with customer phone:', phoneToUse);
+      }
+      
+      // ✅ Also add customer_id if available (backward compatibility)
+      if (customerId) {
+        insertData.customer_id = customerId;
+        console.log('🆔 Saving with customer ID:', customerId);
+      }
+
+      const { data, error } = await supabaseClient
+        .from('lucky_draw_prizes')
+        .insert([insertData])
+        .select();
+
+      if (error) {
+        console.error('❌ Save error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Lucky draw entry created:', data);
+      return true;
+    } catch (err) {
+      console.error('Save error:', err);
+      await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
       return false;
+    } finally {
+      hideLoading();
     }
-
-    // ✅ Build insert data with customer_phone
-    const insertData = {
-      receipt: receiptNumber,
-      prize_label: prize,
-      discount_value: discountValue,
-      store: 'queens',
-      claimed: false,
-      claimed_at: null,
-      created_at: new Date().toISOString()
-    };
-
-    // ✅ Add customer_phone if provided
-    const phoneToUse = customerPhoneParam || customerPhone;
-    if (phoneToUse) {
-      insertData.customer_phone = phoneToUse;
-      console.log('📱 Saving with customer phone:', phoneToUse);
-    }
-    
-    // ✅ Also add customer_id if available (backward compatibility)
-    if (customerId) {
-      insertData.customer_id = customerId;
-      console.log('🆔 Saving with customer ID:', customerId);
-    }
-
-    const { data, error } = await supabaseClient
-      .from('lucky_draw_prizes')
-      .insert([insertData])
-      .select();
-
-    if (error) {
-      console.error('❌ Save error:', error);
-      throw error;
-    }
-    
-    console.log('✅ Lucky draw entry created:', data);
-    return true;
-  } catch (err) {
-    console.error('Save error:', err);
-    await showAlertModal('Save Failed', `Could not save: ${err.message}\nPlease screenshot your win.`);
-    return false;
-  } finally {
-    hideLoading();
   }
-}
 
   async function claimReceipt(receiptNumber, value) {
     showLoading('Processing claim...');
@@ -736,7 +736,8 @@ async function saveSpinResult(receiptNumber, prize, discountValue, customerPhone
           displayPrize += " WITH ANY PURCHASE";
         }
         
-        saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerId).then(saved => {
+        // ✅ FIXED: Pass customerPhone instead of customerId
+        saveSpinResult(receiptNumber, wonPrize.label, wonPrize.discountValue, customerPhone).then(saved => {
           if (saved) {
             const congratsMsg = `You won: ${displayPrize}\nWORTH: RM ${wonPrize.discountValue}\nYour prize has been recorded. Thank you!`;
             showAlertModal('Congratulations!', congratsMsg).then(() => closePage());
@@ -807,7 +808,8 @@ async function saveSpinResult(receiptNumber, prize, discountValue, customerPhone
           if (value !== null) await showAlertModal('Error', 'Value cannot be empty.');
           return;
         }
-        const saved = await saveSpinResult(receiptNumber, prize, parseFloat(value) || 0, customerId);
+        // ✅ Pass phone number to saveSpinResult
+        const saved = await saveSpinResult(receiptNumber, prize, parseFloat(value) || 0, customerPhone);
         if (!saved) {
           await showAlertModal('Error', 'Failed to save record.');
           return;
@@ -869,16 +871,24 @@ async function saveSpinResult(receiptNumber, prize, discountValue, customerPhone
     }
   });
 
-  // URL receipt + customer_id detection
+  // ✅ FIXED: URL receipt + phone detection
   (async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const receiptFromUrl = urlParams.get('receipt');
-	  const customerPhoneFromUrl = urlParams.get('phone');
+    const customerPhoneFromUrl = urlParams.get('phone');
     const customerIdFromUrl = urlParams.get('customer');
+    
+    // ✅ Store phone number globally
+    if (customerPhoneFromUrl) { 
+      customerPhone = customerPhoneFromUrl; 
+      console.log('📱 Customer phone loaded:', customerPhone); 
+    }
+    
     if (customerIdFromUrl) { 
       customerId = customerIdFromUrl; 
-      console.log('Customer ID loaded:', customerId); 
+      console.log('🆔 Customer ID loaded:', customerId); 
     }
+    
     if (receiptFromUrl) {
       storedReceiptNumber = receiptFromUrl;
       try {
