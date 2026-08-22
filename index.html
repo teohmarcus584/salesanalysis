@@ -370,7 +370,8 @@
     }
   }
 
-  async function saveSpinResult(receiptNumber, prize, discountValue, customerId = null) {
+  // In Lucky Draw page
+async function saveSpinResult(receiptNumber, prize, discountValue, customerPhoneParam = null) {
   showLoading('Recording your win...');
   try {
     const existing = await fetchReceiptData(receiptNumber);
@@ -380,17 +381,33 @@
       return false;
     }
 
+    // ✅ Build insert data with customer_phone
+    const insertData = {
+      receipt: receiptNumber,
+      prize_label: prize,
+      discount_value: discountValue,
+      store: 'queens',
+      claimed: false,
+      claimed_at: null,
+      created_at: new Date().toISOString()
+    };
+
+    // ✅ Add customer_phone if provided
+    const phoneToUse = customerPhoneParam || customerPhone;
+    if (phoneToUse) {
+      insertData.customer_phone = phoneToUse;
+      console.log('📱 Saving with customer phone:', phoneToUse);
+    }
+    
+    // ✅ Also add customer_id if available (backward compatibility)
+    if (customerId) {
+      insertData.customer_id = customerId;
+      console.log('🆔 Saving with customer ID:', customerId);
+    }
+
     const { data, error } = await supabaseClient
       .from('lucky_draw_prizes')
-      .insert([{
-        receipt: receiptNumber,
-        prize_label: prize,
-        discount_value: discountValue,
-        store: 'queens',
-        claimed: false,
-        claimed_at: null,
-        created_at: new Date().toISOString()
-      }])
+      .insert([insertData])
       .select();
 
     if (error) {
