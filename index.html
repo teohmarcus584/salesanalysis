@@ -372,6 +372,7 @@
   }
 
   // In Lucky Draw page
+// In Lucky Draw page - replace the saveSpinResult function
 async function saveSpinResult(receiptNumber, prize, discountValue, customerPhoneParam = null) {
   showLoading('Recording your win...');
   try {
@@ -382,25 +383,31 @@ async function saveSpinResult(receiptNumber, prize, discountValue, customerPhone
       return false;
     }
 
-    // ✅ Build insert data with customer_phone
+    // ✅ Get store from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const storeFromUrl = urlParams.get('store') || 'queens';  // Default to 'queens' if not found
+    
+    console.log('🏪 Saving store from URL:', storeFromUrl);
+
+    // ✅ Build insert data with the correct store
     const insertData = {
       receipt: receiptNumber,
       prize_label: prize,
       discount_value: discountValue,
-      store: 'queens',
+      store: storeFromUrl,  // ← ✅ USE THE STORE FROM URL!
       claimed: false,
       claimed_at: null,
       created_at: new Date().toISOString()
     };
 
-    // ✅ Add customer_phone if provided
+    // Add customer phone if provided
     const phoneToUse = customerPhoneParam || customerPhone;
-if (phoneToUse) {
-  insertData.customer_id = phoneToUse; // Changed from customer_phone to customer_id
-  console.log('📱 Saving customer ID (phone):', phoneToUse);
-}
+    if (phoneToUse) {
+      insertData.customer_id = phoneToUse;
+      console.log('📱 Saving customer ID (phone):', phoneToUse);
+    }
     
-    // ✅ Also add customer_id if available (backward compatibility)
+    // Also add customer_id if available
     if (customerId) {
       insertData.customer_id = customerId;
       console.log('🆔 Saving with customer ID:', customerId);
@@ -416,7 +423,8 @@ if (phoneToUse) {
       throw error;
     }
     
-    console.log('✅ Lucky draw entry created:', data);
+    console.log('✅ Lucky draw entry created with store:', storeFromUrl);
+    console.log('📋 Data saved:', data);
     return true;
   } catch (err) {
     console.error('Save error:', err);
@@ -870,40 +878,41 @@ if (phoneToUse) {
   });
 
   // URL receipt + customer_id detection
-  (async function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const receiptFromUrl = urlParams.get('receipt');
-	  const customerPhoneFromUrl = urlParams.get('phone');
-    const customerIdFromUrl = urlParams.get('customer');
-	  if (customerPhoneFromUrl) { 
+(async function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const receiptFromUrl = urlParams.get('receipt');
+  const customerPhoneFromUrl = urlParams.get('phone');
+  const customerIdFromUrl = urlParams.get('customer');
+  
+  if (customerPhoneFromUrl) { 
     customerPhone = customerPhoneFromUrl;  // ← ADD THIS LINE
     console.log('📱 Customer phone loaded:', customerPhone); 
   }
-    if (customerIdFromUrl) { 
-      customerId = customerIdFromUrl; 
-      console.log('Customer ID loaded:', customerId); 
-    }
-    if (receiptFromUrl) {
-      storedReceiptNumber = receiptFromUrl;
-      try {
-        const existing = await fetchReceiptData(receiptFromUrl);
-        if (existing !== null) {
-          const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
-          await showAlertModal('Already Used', `Receipt ${receiptFromUrl} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
-          storedReceiptNumber = null;
-          resultDiv.innerText = 'This receipt has already been used.';
-        } else {
-          resultDiv.innerText = `Receipt ${receiptFromUrl} loaded. Click SPIN to try your luck!`;
-          await animateCoinToButton();
-          spinBtn.classList.add('pulse-glow');
-        }
-      } catch (error) { 
-        console.error('Error checking receipt from URL:', error); 
-        resultDiv.innerText = 'Error validating receipt. Please try manually.'; 
-        storedReceiptNumber = null; 
+  if (customerIdFromUrl) { 
+    customerId = customerIdFromUrl; 
+    console.log('Customer ID loaded:', customerId); 
+  }
+  if (receiptFromUrl) {
+    storedReceiptNumber = receiptFromUrl;
+    try {
+      const existing = await fetchReceiptData(receiptFromUrl);
+      if (existing !== null) {
+        const claimedText = existing.claimed ? ' (claimed)' : ' (not claimed)';
+        await showAlertModal('Already Used', `Receipt ${receiptFromUrl} already won: ${existing.prize_label}${claimedText}. Cannot use again.`);
+        storedReceiptNumber = null;
+        resultDiv.innerText = 'This receipt has already been used.';
+      } else {
+        resultDiv.innerText = `Receipt ${receiptFromUrl} loaded. Click SPIN to try your luck!`;
+        await animateCoinToButton();
+        spinBtn.classList.add('pulse-glow');
       }
+    } catch (error) { 
+      console.error('Error checking receipt from URL:', error); 
+      resultDiv.innerText = 'Error validating receipt. Please try manually.'; 
+      storedReceiptNumber = null; 
     }
-  })();
+  }
+})();
 </script>
 </body>
 </html>
